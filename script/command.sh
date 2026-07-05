@@ -6,4 +6,10 @@ docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/routeA
 
 docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/routeALRETURN.sql
 
+docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/routeAGGO.sql
+
+docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/routeAGRETURN.sql
+
 docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/schedule.sql
+
+docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/reset.sql
