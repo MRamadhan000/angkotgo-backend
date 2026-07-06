@@ -14,12 +14,20 @@ export class LiveSessionsService {
 
     @InjectRepository(LiveLocation)
     private readonly locationRepository: Repository<LiveLocation>,
-  ) {}
+  ) { }
 
   // 1. Start Sesi Live Baru
-  async startSession(createLiveSessionDto: CreateLiveSessionDto): Promise<LiveSession> {
-    const newSession = this.sessionRepository.create(createLiveSessionDto);
-    return await this.sessionRepository.save(newSession);
+  async startSession(
+    createLiveSessionDto: CreateLiveSessionDto,
+  ): Promise<LiveSession> {
+
+    const session = this.sessionRepository.create({
+      trip: {
+        id: createLiveSessionDto.tripId,
+      } as any,
+    });
+
+    return await this.sessionRepository.save(session);
   }
 
   // 2. Push Koordinat GPS baru ke dalam Sesi yang sedang berjalan
@@ -35,6 +43,21 @@ export class LiveSessionsService {
     });
 
     return await this.locationRepository.save(newLocation);
+  }
+
+  async findAll() {
+    const sessions = await this.sessionRepository
+      .createQueryBuilder('session')
+      .leftJoinAndSelect('session.trip', 'trip')
+      .leftJoinAndSelect('trip.route', 'route')
+      .leftJoinAndSelect('trip.schedule', 'schedule')
+      .leftJoinAndSelect('schedule.driver', 'driver')
+      .leftJoinAndSelect('schedule.vehicle', 'vehicle')
+      .leftJoinAndSelect('session.locations', 'location')
+      .orderBy('location.created_at', 'DESC')
+      .getMany();
+
+    return sessions;
   }
 
   // 3. Ambil Detail Sesi beserta Log Seluruh Koordinat GPS-nya

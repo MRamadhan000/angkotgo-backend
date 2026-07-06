@@ -6,10 +6,12 @@ import {
     UpdateDateColumn,
     ManyToOne,
     JoinColumn,
+    OneToMany,
 } from 'typeorm';
 
 import { Schedule } from '../../schedules/entities/schedule.entity';
 import { Route } from '../../routes/entities/route.entity';
+import { LiveSession } from 'src/live-sessions/entities/live-session.entity';
 
 export enum TripStatus {
     SCHEDULED = 'SCHEDULED',
@@ -116,4 +118,7 @@ export class Trip {
         name: 'updated_at',
     })
     updatedAt!: Date;
+
+    @OneToMany(() => LiveSession, (session) => session.trip)
+    liveSessions!: LiveSession[];
 }

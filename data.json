@@ -1,0 +1,482 @@
+[
+    {
+        "id": 1,
+        "tripNumber": 1,
+        "route": {
+            "id": 1,
+            "code": "AL",
+            "name": "Arjosari - Landungsari",
+            "direction": "GO",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:47.172Z",
+            "updatedAt": "2026-07-05T13:38:47.172Z"
+        },
+        "schedule": {
+            "id": 1,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "06:00:00",
+        "actualDeparture": null,
+        "plannedArrival": "07:00:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 2,
+        "tripNumber": 2,
+        "route": {
+            "id": 2,
+            "code": "AL",
+            "name": "Landungsari - Arjosari",
+            "direction": "RETURN",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:51.195Z",
+            "updatedAt": "2026-07-05T13:38:51.195Z"
+        },
+        "schedule": {
+            "id": 1,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "07:15:00",
+        "actualDeparture": null,
+        "plannedArrival": "08:15:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 3,
+        "tripNumber": 1,
+        "route": {
+            "id": 1,
+            "code": "AL",
+            "name": "Arjosari - Landungsari",
+            "direction": "GO",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:47.172Z",
+            "updatedAt": "2026-07-05T13:38:47.172Z"
+        },
+        "schedule": {
+            "id": 2,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "06:10:00",
+        "actualDeparture": null,
+        "plannedArrival": "07:10:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 4,
+        "tripNumber": 2,
+        "route": {
+            "id": 2,
+            "code": "AL",
+            "name": "Landungsari - Arjosari",
+            "direction": "RETURN",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:51.195Z",
+            "updatedAt": "2026-07-05T13:38:51.195Z"
+        },
+        "schedule": {
+            "id": 2,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "07:25:00",
+        "actualDeparture": null,
+        "plannedArrival": "08:25:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 5,
+        "tripNumber": 1,
+        "route": {
+            "id": 3,
+            "code": "AG",
+            "name": "AG - Arjosari - Southern Area",
+            "direction": "GO",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:36.379Z",
+            "updatedAt": "2026-07-05T13:45:36.379Z"
+        },
+        "schedule": {
+            "id": 3,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "06:00:00",
+        "actualDeparture": null,
+        "plannedArrival": "07:00:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 6,
+        "tripNumber": 2,
+        "route": {
+            "id": 4,
+            "code": "AG",
+            "name": "AG - Southern Area - Arjosari",
+            "direction": "RETURN",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:41.749Z",
+            "updatedAt": "2026-07-05T13:45:41.749Z"
+        },
+        "schedule": {
+            "id": 3,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "07:15:00",
+        "actualDeparture": null,
+        "plannedArrival": "08:15:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 7,
+        "tripNumber": 1,
+        "route": {
+            "id": 3,
+            "code": "AG",
+            "name": "AG - Arjosari - Southern Area",
+            "direction": "GO",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:36.379Z",
+            "updatedAt": "2026-07-05T13:45:36.379Z"
+        },
+        "schedule": {
+            "id": 4,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "06:20:00",
+        "actualDeparture": null,
+        "plannedArrival": "07:20:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 8,
+        "tripNumber": 2,
+        "route": {
+            "id": 4,
+            "code": "AG",
+            "name": "AG - Southern Area - Arjosari",
+            "direction": "RETURN",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:41.749Z",
+            "updatedAt": "2026-07-05T13:45:41.749Z"
+        },
+        "schedule": {
+            "id": 4,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "07:35:00",
+        "actualDeparture": null,
+        "plannedArrival": "08:35:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 9,
+        "tripNumber": 1,
+        "route": {
+            "id": 1,
+            "code": "AL",
+            "name": "Arjosari - Landungsari",
+            "direction": "GO",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:47.172Z",
+            "updatedAt": "2026-07-05T13:38:47.172Z"
+        },
+        "schedule": {
+            "id": 5,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "08:00:00",
+        "actualDeparture": null,
+        "plannedArrival": "09:00:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 10,
+        "tripNumber": 2,
+        "route": {
+            "id": 2,
+            "code": "AL",
+            "name": "Landungsari - Arjosari",
+            "direction": "RETURN",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:51.195Z",
+            "updatedAt": "2026-07-05T13:38:51.195Z"
+        },
+        "schedule": {
+            "id": 5,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "09:15:00",
+        "actualDeparture": null,
+        "plannedArrival": "10:15:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 11,
+        "tripNumber": 1,
+        "route": {
+            "id": 3,
+            "code": "AG",
+            "name": "AG - Arjosari - Southern Area",
+            "direction": "GO",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:36.379Z",
+            "updatedAt": "2026-07-05T13:45:36.379Z"
+        },
+        "schedule": {
+            "id": 6,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "08:00:00",
+        "actualDeparture": null,
+        "plannedArrival": "09:00:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 12,
+        "tripNumber": 2,
+        "route": {
+            "id": 4,
+            "code": "AG",
+            "name": "AG - Southern Area - Arjosari",
+            "direction": "RETURN",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:41.749Z",
+            "updatedAt": "2026-07-05T13:45:41.749Z"
+        },
+        "schedule": {
+            "id": 6,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "09:15:00",
+        "actualDeparture": null,
+        "plannedArrival": "10:15:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 13,
+        "tripNumber": 1,
+        "route": {
+            "id": 1,
+            "code": "AL",
+            "name": "Arjosari - Landungsari",
+            "direction": "GO",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:47.172Z",
+            "updatedAt": "2026-07-05T13:38:47.172Z"
+        },
+        "schedule": {
+            "id": 7,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "10:00:00",
+        "actualDeparture": null,
+        "plannedArrival": "11:00:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 14,
+        "tripNumber": 2,
+        "route": {
+            "id": 2,
+            "code": "AL",
+            "name": "Landungsari - Arjosari",
+            "direction": "RETURN",
+            "color": "#2196F3",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:38:51.195Z",
+            "updatedAt": "2026-07-05T13:38:51.195Z"
+        },
+        "schedule": {
+            "id": 7,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "11:15:00",
+        "actualDeparture": null,
+        "plannedArrival": "12:15:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 15,
+        "tripNumber": 1,
+        "route": {
+            "id": 3,
+            "code": "AG",
+            "name": "AG - Arjosari - Southern Area",
+            "direction": "GO",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:36.379Z",
+            "updatedAt": "2026-07-05T13:45:36.379Z"
+        },
+        "schedule": {
+            "id": 8,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "10:00:00",
+        "actualDeparture": null,
+        "plannedArrival": "11:00:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    },
+    {
+        "id": 16,
+        "tripNumber": 2,
+        "route": {
+            "id": 4,
+            "code": "AG",
+            "name": "AG - Southern Area - Arjosari",
+            "direction": "RETURN",
+            "color": "#4CAF50",
+            "distanceKm": null,
+            "estimatedDurationMinutes": null,
+            "isActive": true,
+            "createdAt": "2026-07-05T13:45:41.749Z",
+            "updatedAt": "2026-07-05T13:45:41.749Z"
+        },
+        "schedule": {
+            "id": 8,
+            "workDate": "2026-07-06",
+            "shift": 1,
+            "createdAt": "2026-07-05T13:50:47.930Z",
+            "updatedAt": "2026-07-05T13:50:47.930Z"
+        },
+        "plannedDeparture": "11:15:00",
+        "actualDeparture": null,
+        "plannedArrival": "12:15:00",
+        "actualArrival": null,
+        "status": "SCHEDULED",
+        "createdAt": "2026-07-05T13:50:47.930Z",
+        "updatedAt": "2026-07-05T13:50:47.930Z"
+    }
+]

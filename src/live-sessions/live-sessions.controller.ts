@@ -6,7 +6,13 @@ import { SessionStatus } from './entities/live-session.entity';
 
 @Controller('live-sessions')
 export class LiveSessionsController {
-  constructor(private readonly liveSessionsService: LiveSessionsService) {}
+  constructor(private readonly liveSessionsService: LiveSessionsService) { }
+
+  @Get()
+  findAll() {
+    return this.liveSessionsService.findAll();
+  }
+
 
   // POST /live-sessions (Mulai Sesi Driver Baru)
   @Post()
