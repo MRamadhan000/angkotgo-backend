@@ -214,7 +214,7 @@ export class PassengerService {
       stops,
       polyline_points: polylinePoints,
       active_buses: activeBuses,
-      filterd_buses: filteredBuses,
+      filtered_buses: filteredBuses,
     };
   }
 
