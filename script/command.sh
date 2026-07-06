@@ -19,3 +19,5 @@ docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/active
 docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/createLiveSessions.sql
 
 docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/createLiveLocations.sql
+
+docker exec -i nest_postgres_container psql -U nest_user -d nest_db < sql/resetLocationAndSessions.sql

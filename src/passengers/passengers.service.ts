@@ -1,9 +1,35 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+
+import { RouteStop } from 'src/routes/entities/route-stop.entity';
+import { Route } from 'src/routes/entities/route.entity';
+import { Trip, TripStatus } from 'src/trips/entities/trip.entity';
+import { LiveSession, SessionStatus } from 'src/live-sessions/entities/live-session.entity';
+import { LiveLocation } from 'src/live-sessions/entities/live-location.entity';
+import { Schedule } from 'src/schedules/entities/schedule.entity';
+import { Driver } from 'src/drivers/entities/driver.entity';
+import { Vehicle } from 'src/vehicles/entities/vehicle.entity';
 
 @Injectable()
 export class PassengerService {
-  constructor(private dataSource: DataSource) { }
+  private readonly logger = new Logger(PassengerService.name);
+
+  constructor(
+    private readonly dataSource: DataSource,
+
+    @InjectRepository(RouteStop)
+    private readonly routeStopRepo: Repository<RouteStop>,
+
+    @InjectRepository(Route)
+    private readonly routeRepo: Repository<Route>,
+
+    @InjectRepository(Trip)
+    private readonly tripRepo: Repository<Trip>,
+
+    @InjectRepository(LiveSession)
+    private readonly liveSessionRepo: Repository<LiveSession>,
+  ) { }
 
   // =========================================================================
   // LOGIKA 1: FITUR AUTO-COMPLETE / DROPDOWN HALTE (POSTGRESQL VERSION)
@@ -21,178 +47,198 @@ export class PassengerService {
     );
   }
 
-  // =========================================================================
-  // =========================================================================
-  // LOGIKA 2-7: PENCARIAN JALUR, HALTE SEARAH, DAN LIVE BUS
-  // =========================================================================
   async findRouteAndActiveBuses(originStopId: number, destinationStopId: number) {
+    this.logger.log('========================================');
+    this.logger.log('START FIND ROUTE & ACTIVE BUSES (TypeORM)');
+    this.logger.log(`Origin Stop ID : ${originStopId}`);
+    this.logger.log(`Destination ID : ${destinationStopId}`);
+    this.logger.log('========================================');
 
-    console.log("========================================");
-    console.log("START FIND ROUTE & ACTIVE BUSES");
-    console.log("Origin Stop :", originStopId);
-    console.log("Destination :", destinationStopId);
-    console.log("========================================");
+    // ==================== STEP A ====================
+    const matchingRoute = await this.routeStopRepo
+      .createQueryBuilder('origin')
+      .innerJoin(
+        RouteStop,
+        'dest',
+        'origin.route_id = dest.route_id AND origin.id = :originId AND dest.id = :destId',
+        { originId: originStopId, destId: destinationStopId },
+      )
+      .select([
+        'origin.route_id AS route_id',
+        'origin.sequence AS origin_seq',
+        'dest.sequence AS dest_seq',
+      ])
+      .where('origin.sequence < dest.sequence')
+      .limit(1)
+      .getRawOne();
 
-    /**
-     * LANGKAH A
-     */
-    const matchingRoutes = await this.dataSource.query(
-      `SELECT s_origin.route_id, s_origin.sequence AS origin_seq, s_dest.sequence AS dest_seq
-     FROM route_stops s_origin
-     JOIN route_stops s_dest ON s_origin.route_id = s_dest.route_id
-     WHERE s_origin.id = $1
-       AND s_dest.id = $2
-       AND s_origin.sequence < s_dest.sequence
-     LIMIT 1`,
-      [originStopId, destinationStopId],
-    );
+    this.logger.log('\n===== STEP A : MATCHING ROUTE =====');
 
-    console.log("\n===== STEP A : MATCHING ROUTE =====");
-    console.log("Total :", matchingRoutes.length);
-
-    if (matchingRoutes.length > 0) {
-      console.log("Data :", matchingRoutes[0]);
+    if (matchingRoute) {
+      this.logger.log('✅ Route ditemukan');
+      this.logger.log(`   Route ID       : ${matchingRoute.route_id}`);
+      this.logger.log(`   Origin ID:     : ${originStopId}`);
+      this.logger.log(`   Origin Sequence: ${matchingRoute.origin_seq}`);
+      this.logger.log(`   DestSequence ID: ${destinationStopId}`);
+      this.logger.log(`   Dest Sequence  : ${matchingRoute.dest_seq}`);
     } else {
-      console.log("❌ Tidak ditemukan route yang searah.");
+      this.logger.warn('❌ Tidak ditemukan route yang searah.');
+      throw new BadRequestException('Rute tidak tersedia atau arah tujuan terbalik.');
     }
 
-    if (matchingRoutes.length === 0) {
-      throw new BadRequestException(
-        'Rute tidak tersedia atau arah tujuan terbalik.',
-      );
-    }
+    const { route_id, origin_seq, dest_seq } = matchingRoute;
 
-    const { route_id, origin_seq, dest_seq } = matchingRoutes[0];
+    // ==================== STEP B ====================
+    const routeInfo = await this.routeRepo.findOne({
+      where: { id: route_id },
+    });
 
-    /**
-     * LANGKAH B
-     */
-    const routeInfo = await this.dataSource.query(
-      `SELECT
-        id AS route_id,
-        name AS route_name,
-        distance_km
-     FROM routes
-     WHERE id = $1`,
-      [route_id],
-    );
-
-    console.log("\n===== STEP B : ROUTE INFO =====");
-    console.log("Total :", routeInfo.length);
-
-    if (routeInfo.length > 0) {
-      console.log(routeInfo[0]);
+    this.logger.log('\n===== STEP B : ROUTE INFO =====');
+    if (routeInfo) {
+      this.logger.log('✅ Route Info berhasil diambil');
+      this.logger.log(`   ID          : ${routeInfo.id}`);
+      this.logger.log(`   Code        : ${routeInfo.code}`);
+      this.logger.log(`   Name        : ${routeInfo.name}`);
+      this.logger.log(`   Direction   : ${routeInfo.direction}`);
+      this.logger.log(`   Color       : ${routeInfo.color}`);
+      this.logger.log(`   Distance Km : ${routeInfo.distanceKm}`);
     } else {
-      console.log("❌ Route master tidak ditemukan.");
+      this.logger.warn('❌ Route master tidak ditemukan.');
     }
 
-    /**
-     * LANGKAH C
-     */
-    const stops = await this.dataSource.query(
-      `SELECT
-        id,
-        name,
-        sequence,
-        latitude,
-        longitude
-     FROM route_stops
-     WHERE route_id = $1
-       AND sequence BETWEEN $2 AND $3
-     ORDER BY sequence ASC`,
-      [route_id, origin_seq, dest_seq],
-    );
+    // ==================== STEP C ====================
+    const stops = await this.routeStopRepo
+      .createQueryBuilder('stop')
+      .where('stop.route_id = :routeId', { routeId: route_id })
+      .andWhere('stop.sequence BETWEEN :originSeq AND :destSeq', {
+        originSeq: origin_seq,
+        destSeq: dest_seq,
+      })
+      .orderBy('stop.sequence', 'ASC')
+      .getMany();
 
-    console.log("\n===== STEP C : ROUTE STOPS =====");
-    console.log("Total Stop :", stops.length);
+    this.logger.log('\n===== STEP C : ROUTE STOPS =====');
+    this.logger.log(`✅ Total Stop ditemukan: ${stops.length}`);
 
     if (stops.length > 0) {
-      console.log("Stop Pertama :", stops[0]);
-      console.log("Stop Terakhir :", stops[stops.length - 1]);
-    } else {
-      console.log("❌ Tidak ada halte.");
+      for (let index = 0; index < stops.length; index++) {
+        this.logger.log(`   Stop Ke ${index + 1} Loop : ${stops[index].name} (seq: ${stops[index].sequence})  (ID Halte : ${stops[index].id})`);
+      }
     }
 
-    /**
-     * LANGKAH D
-     */
-    const polylinePoints = await this.dataSource.query(
-      `SELECT
-        latitude,
-        longitude
-     FROM route_points
-     WHERE route_id = $1
-     ORDER BY sequence ASC`,
-      [route_id],
-    );
+    // ==================== STEP D ====================
+    const polylinePoints = await this.dataSource
+      .createQueryBuilder()
+      .select(['latitude', 'longitude'])
+      .from('route_points', 'rp')
+      .where('rp.route_id = :routeId', { routeId: route_id })
+      .orderBy('rp.sequence', 'ASC')
+      .getRawMany();
 
-    console.log("\n===== STEP D : POLYLINE =====");
-    console.log("Total Point :", polylinePoints.length);
+    // this.logger.log('\n===== STEP D : POLYLINE =====');
+    // this.logger.log(`✅ Total Polyline Points: ${polylinePoints.length}`);
 
-    if (polylinePoints.length > 0) {
-      console.log("First :", polylinePoints[0]);
-      console.log("Last  :", polylinePoints[polylinePoints.length - 1]);
-    } else {
-      console.log("❌ Polyline kosong.");
-    }
+    // ==================== STEP E ====================
+    const activeBuses = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        't.id AS trip_id',
+        'v.vehicle_code',
+        'v.plate_number',
+        'd.name AS driver_name',
+        'll.latitude',
+        'll.longitude',
+        'll.speed_kmh',
+        'll.heading_degrees',
+        'll.created_at AS updated_at',
+        'ls.id AS LiveSessionID',
 
-    /**
-     * LANGKAH E
-     */
-    const activeBuses = await this.dataSource.query(
-      `SELECT
-        t.id AS trip_id,
-        v.vehicle_code,
-        v.plate_number,
-        d.name AS driver_name,
-        ll.latitude,
-        ll.longitude,
-        ll.speed_kmh,
-        ll.heading_degrees,
-        ll.created_at AS updated_at
-     FROM trips t
-     JOIN schedules s
-          ON t.schedule_id = s.id
-     JOIN drivers d
-          ON s.driver_id = d.id
-     JOIN vehicles v
-          ON s.vehicle_id = v.id
-     JOIN live_sessions ls
-          ON ls.trip_id = t.id
-     JOIN live_locations ll
-          ON ll.session_id = ls.id
-     WHERE t.status = 'ACTIVE'
-       AND t.route_id = $1
-       AND ls.status = 'ACTIVE'
-       AND ll.created_at = (
-            SELECT MAX(created_at)
-            FROM live_locations
-            WHERE session_id = ls.id
-       )`,
-      [route_id],
-    );
 
-    console.log("\n===== STEP E : ACTIVE BUSES =====");
-    console.log("Total Bus :", activeBuses.length);
+        'ls.currentStop.id AS currentStopID',
+        'ls.currentSequence AS currentSequence',
+
+        'ls.nextStop.id AS nextStopID',
+        'ls.nextSequence AS nextSequence',
+
+        'ls.isAtStop AS isStopInCurrentStop'
+
+      ])
+      .from(Trip, 't')
+      .innerJoin(Schedule, 's', 't.schedule_id = s.id')
+      .innerJoin(Driver, 'd', 's.driver_id = d.id')
+      .innerJoin(Vehicle, 'v', 's.vehicle_id = v.id')
+      .innerJoin(LiveSession, 'ls', 'ls.trip_id = t.id')
+      .innerJoin(LiveLocation, 'll', 'll.session_id = ls.id')
+      .where('t.status = :tripStatus', { tripStatus: TripStatus.ACTIVE })
+      .andWhere('t.route_id = :routeId', { routeId: route_id })
+      .andWhere('ls.status = :sessionStatus', { sessionStatus: SessionStatus.ACTIVE })
+      .andWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('MAX(l2.created_at)')
+          .from(LiveLocation, 'l2')
+          .where('l2.session_id = ll.session_id')
+          .getQuery();
+        return `ll.created_at = ${subQuery}`;
+      })
+      .getRawMany();
+
+    this.logger.log('\n===== STEP E : ACTIVE BUSES =====');
+    this.logger.log(`✅ Total Bus Aktif ditemukan: ${activeBuses.length}`);
 
     if (activeBuses.length > 0) {
       activeBuses.forEach((bus: any, index: number) => {
-        console.log(`Bus ${index + 1}`, bus);
+        this.logger.log(
+          `   Bus ${index + 1}: ${bus.vehicle_code} | ${bus.plate_number} | ` +
+          // Sesuaikan key dengan hasil mapping database (ll_latitude, ll_longitude, currentsequence, nextsequence)
+          `Driver: ${bus.driver_name} | Lat: ${bus.ll_latitude}, Lng: ${bus.ll_longitude} Current Seq : ${bus.currentsequence}, nextSequence : ${bus.nextsequence}`
+        );
       });
-    } else {
-      console.log("❌ Tidak ada bus aktif.");
     }
 
-    console.log("\n========================================");
-    console.log("FINISH");
-    console.log("========================================");
+    // this.logger.log('========== ACTIVE BUSES ==========');
+    // this.logger.log(JSON.stringify(activeBuses, null, 2));
+
+    const filteredBuses = this.filterBusesForPassenger(activeBuses, origin_seq);
+    this.logger.log('\n===== STEP F : FILTERED ACTIVE BUSES =====');
+    this.logger.log(`✅ Total Bus yang menjemput ditemukan: ${filteredBuses.length}`);
+    this.logger.log(JSON.stringify(filteredBuses, null, 2));
+
+
+    this.logger.log('\n========================================');
+    this.logger.log('✅ FINISH findRouteAndActiveBuses - Success');
+    this.logger.log('========================================\n');
 
     return {
-      route_info: routeInfo[0],
+      route_info: routeInfo,
       stops,
       polyline_points: polylinePoints,
       active_buses: activeBuses,
+      filterd_buses: filteredBuses,
     };
+  }
+
+  private filterBusesForPassenger(activeBuses: any[], originSeq: number): any[] {
+    return activeBuses.filter((bus) => {
+      const busCurrentSeq = Number(bus.currentsequence);
+      const passengerOriginSeq = Number(originSeq);
+      const isAtStop = bus.isstopincurrentstop === true || bus.isstopincurrentstop === 'true';
+
+      // KONDISI 1: Bus tepat berada di halte asal user saat ini
+      if (busCurrentSeq === passengerOriginSeq) {
+        // Hanya lolos jika busnya masih berhenti (menunggu penumpang)
+        return isAtStop;
+      }
+
+      // KONDISI 2: Bus berada di sekuens awal/halte-halte sebelum posisi user
+      // (Contoh: User di seq 60, Bus masih di seq 1 atau seq 30)
+      if (busCurrentSeq < passengerOriginSeq) {
+        return true; // Lolos! Karena bus ini berjalan menuju posisi user
+      }
+
+      // KONDISI 3: Bus sudah melewati sekuens user (busCurrentSeq > passengerOriginSeq)
+      return false;
+    });
   }
 
 }

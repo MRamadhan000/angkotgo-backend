@@ -11,6 +11,7 @@ import {
 
 import { LiveLocation } from './live-location.entity';
 import { Trip } from '../../trips/entities/trip.entity';
+import { RouteStop } from '../../routes/entities/route-stop.entity';
 
 export enum SessionStatus {
   ACTIVE = 'ACTIVE',
@@ -39,11 +40,56 @@ export class LiveSession {
   })
   status!: SessionStatus;
 
+  /**
+   * Halte terakhir yang telah dilewati.
+   */
+  @ManyToOne(() => RouteStop, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'current_stop_id' })
+  currentStop?: RouteStop;
+
+  /**
+   * Urutan halte terakhir yang telah dilewati.
+   */
+  @Column({
+    type: 'int',
+    name: 'current_sequence',
+    nullable: true,
+  })
+  currentSequence?: number;
+
+  /**
+   * Halte berikutnya yang sedang dituju.
+   */
+  @ManyToOne(() => RouteStop, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'next_stop_id' })
+  nextStop?: RouteStop;
+
+  /**
+   * Urutan halte berikutnya.
+   */
+  @Column({
+    type: 'int',
+    name: 'next_sequence',
+    nullable: true,
+  })
+  nextSequence?: number;
+
   @CreateDateColumn({
     type: 'timestamp',
     name: 'started_at',
   })
   startedAt!: Date;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+    name: 'is_at_stop',
+  })
+  isAtStop!: boolean;
 
   @Column({
     type: 'timestamp',
