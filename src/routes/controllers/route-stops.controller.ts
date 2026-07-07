@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, ParseArrayPipe } from '@nestjs/common';
 import { RouteStopsService } from '../services/route-stops.service';
 import { CreateRouteStopDto } from '../dto/create-route.dto';
 import { RouteStop } from '../entities/route-stop.entity';
@@ -6,6 +6,14 @@ import { RouteStop } from '../entities/route-stop.entity';
 @Controller('routes/:routeId/stops')
 export class RouteStopsController {
     constructor(private readonly routeStopsService: RouteStopsService) { }
+    @Post('bulk')
+    async createBulk(
+        @Param('routeId', ParseIntPipe) routeId: number,
+        @Body(new ParseArrayPipe({ items: CreateRouteStopDto }))
+        createRouteStopDtos: CreateRouteStopDto[],
+    ): Promise<RouteStop[]> {
+        return await this.routeStopsService.createBulk(routeId, createRouteStopDtos);
+    }
 
     // POST /routes/:routeId/stops
     @Post()

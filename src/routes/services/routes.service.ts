@@ -29,8 +29,8 @@ export class RoutesService {
     // FIX: Mengubah array string menjadi format objek literal boolean
     return await this.routeRepository.find({
       relations: {
-        points: true,
-        stops: true,
+        // points: true,
+        // stops: true,
       },
       order: {
         id: 'ASC',

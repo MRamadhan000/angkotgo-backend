@@ -1,11 +1,20 @@
-import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, ParseArrayPipe } from '@nestjs/common';
 import { RoutePointsService } from '../services/route-points.service';
 import { CreateRoutePointDto } from '../dto/create-route.dto';
 import { RoutePoint } from '../entities/route-point.entity';
 
 @Controller('routes/:routeId/points')
 export class RoutePointsController {
-  constructor(private readonly routePointsService: RoutePointsService) {}
+  constructor(private readonly routePointsService: RoutePointsService) { }
+
+  @Post('bulk')
+  async createBulk(
+    @Param('routeId', ParseIntPipe) routeId: number,
+    @Body(new ParseArrayPipe({ items: CreateRoutePointDto }))
+    createRoutePointDtos: CreateRoutePointDto[],
+  ): Promise<RoutePoint[]> {
+    return await this.routePointsService.createBulk(routeId, createRoutePointDtos);
+  }
 
   // POST /routes/:routeId/points
   @Post()

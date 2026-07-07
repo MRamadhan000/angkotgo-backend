@@ -13,7 +13,7 @@ export class RouteStopsService {
 
     @InjectRepository(Route)
     private readonly routeRepository: Repository<Route>,
-  ) {}
+  ) { }
 
   // 1. Menambahkan Halte Baru ke Rute Tertentu
   async create(routeId: number, createRouteStopDto: CreateRouteStopDto): Promise<RouteStop> {
@@ -43,6 +43,25 @@ export class RouteStopsService {
       where: { route: { id: routeId } },
       order: { sequence: 'ASC' }, // Urutkan berdasarkan urutan singgah halte
     });
+  }
+
+  async createBulk(routeId: number, createRouteStopDtos: CreateRouteStopDto[]): Promise<RouteStop[]> {
+    // 1. Pastikan Rute utamanya eksis
+    const route = await this.routeRepository.findOne({ where: { id: routeId } });
+    if (!route) {
+      throw new NotFoundException(`Rute dengan ID ${routeId} tidak ditemukan`);
+    }
+
+    // 2. Map array DTO menjadi array entity yang terikat dengan routeId tersebut
+    const newStops = createRouteStopDtos.map((dto) => {
+      return this.routeStopRepository.create({
+        ...dto,
+        route: route, // Hubungkan ke relasi route
+      });
+    });
+
+    // 3. Simpan massal ke database
+    return await this.routeStopRepository.save(newStops);
   }
 
   // 3. Menghapus Satu Halte Satuan Berdasarkan ID Halte

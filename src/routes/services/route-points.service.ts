@@ -13,7 +13,7 @@ export class RoutePointsService {
 
     @InjectRepository(Route)
     private readonly routeRepository: Repository<Route>,
-  ) {}
+  ) { }
 
   // 1. Menambahkan Titik Koordinat Baru ke Rute Tertentu
   async create(routeId: number, createRoutePointDto: CreateRoutePointDto): Promise<RoutePoint> {
@@ -30,6 +30,25 @@ export class RoutePointsService {
     });
 
     return await this.routePointRepository.save(newPoint);
+  }
+
+  async createBulk(routeId: number, createRoutePointDtos: CreateRoutePointDto[]): Promise<RoutePoint[]> {
+    // 1. Pastikan Rute utamanya eksis di database
+    const route = await this.routeRepository.findOne({ where: { id: routeId } });
+    if (!route) {
+      throw new NotFoundException(`Rute dengan ID ${routeId} tidak ditemukan`);
+    }
+
+    // 2. Map array DTO menjadi array entity yang terhubung dengan objek route
+    const newPoints = createRoutePointDtos.map((dto) => {
+      return this.routePointRepository.create({
+        ...dto,
+        route: route, // Hubungkan ke relasi route-nya
+      });
+    });
+
+    // 3. Simpan sekaligus ke database menggunakan .save() yang menerima array
+    return await this.routePointRepository.save(newPoints);
   }
 
   // 2. Mengambil Semua Koordinat Milik Rute Tertentu (Berdasarkan Route ID)
