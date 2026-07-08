@@ -15,10 +15,10 @@ import { PassengersModule } from './passengers/passengers.module';
     TypeOrmModule.forRoot({
       type: 'postgres', 
       host: 'localhost',          // Sesuai dengan nama service di docker-compose
-      port: 5432,
-      username: 'postgres',     // Sesuai MYSQL_USER di docker-compose
-      password: '12345', // Sesuai MYSQL_PASSWORD di docker-compose
-      database: 'postgres',       // Sesuai MYSQL_DATABASE di docker-compose
+      port: 5433,
+      username: 'nest_user',     // Sesuai MYSQL_USER di docker-compose
+      password: 'nest_password', // Sesuai MYSQL_PASSWORD di docker-compose
+      database: 'nest_db',       // Sesuai MYSQL_DATABASE di docker-compose
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,         // Auto-sync schema, cocok untuk development
     }),

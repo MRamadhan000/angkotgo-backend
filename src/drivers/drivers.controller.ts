@@ -3,6 +3,7 @@ import { DriversService } from './drivers.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
 import { Driver } from './entities/driver.entity';
 import { UpdateDriverDto } from './dto/update-driver.dto';
+import { LoginDriverDto } from './dto/login-driver.dto';
 
 @Controller('drivers')
 export class DriversController {
@@ -21,6 +22,11 @@ export class DriversController {
   @Post()
   async create(@Body() createDriverDto: CreateDriverDto): Promise<Driver> {
     return await this.driversService.create(createDriverDto);
+  }
+
+  @Post('login')
+  async login(@Body() loginDriverDto: LoginDriverDto): Promise<Driver> {
+    return await this.driversService.login(loginDriverDto.phone);
   }
 
   @Patch(':id')
