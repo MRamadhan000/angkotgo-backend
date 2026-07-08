@@ -3,6 +3,8 @@ import { LiveSessionsService } from './live-sessions.service';
 import { CreateLiveSessionDto } from './dto/create-live-session.dto';
 import { AddLiveLocationDto } from './dto/add-live-location.dto';
 import { SessionStatus } from './entities/live-session.entity';
+import { UpdateLiveSessionDto } from './dto/update-live-session.dto';
+import { UpdateStopStatusDto } from './dto/update-status-stop.dto';
 
 @Controller('live-sessions')
 export class LiveSessionsController {
@@ -13,11 +15,19 @@ export class LiveSessionsController {
     return this.liveSessionsService.findAll();
   }
 
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateLiveSessionDto,
+  ) {
+    return this.liveSessionsService.update(id, dto);
+  }
+
 
   // POST /live-sessions (Mulai Sesi Driver Baru)
   @Post()
   async startSession(@Body() createLiveSessionDto: CreateLiveSessionDto) {
-    return await this.liveSessionsService.startSession(createLiveSessionDto);
+    return await this.liveSessionsService.create(createLiveSessionDto);
   }
 
   // POST /live-sessions/:id/locations (Tembak koordinat GPS real-time ping dari IoT/App Driver)
@@ -42,5 +52,13 @@ export class LiveSessionsController {
     @Body('status') status: SessionStatus,
   ) {
     return await this.liveSessionsService.endSession(id, status);
+  }
+
+  @Patch(':id/stop')
+  updateStopStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStopStatusDto,
+  ) {
+    return this.liveSessionsService.updateStopStatus(id, dto.isAtStop);
   }
 }

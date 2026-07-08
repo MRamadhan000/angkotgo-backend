@@ -5,6 +5,9 @@ import { LiveSession, SessionStatus } from './entities/live-session.entity';
 import { LiveLocation } from './entities/live-location.entity';
 import { CreateLiveSessionDto } from './dto/create-live-session.dto';
 import { AddLiveLocationDto } from './dto/add-live-location.dto';
+import { RouteStop } from 'src/routes/entities/route-stop.entity';
+import { Trip } from 'src/trips/entities/trip.entity';
+import { UpdateLiveSessionDto } from './dto/update-live-session.dto';
 
 @Injectable()
 export class LiveSessionsService {
@@ -14,19 +17,37 @@ export class LiveSessionsService {
 
     @InjectRepository(LiveLocation)
     private readonly locationRepository: Repository<LiveLocation>,
+
+    @InjectRepository(RouteStop)
+    private readonly routeStopRepository: Repository<RouteStop>,
+
+    @InjectRepository(Trip)
+    private readonly tripRepository: Repository<Trip>,
   ) { }
 
   // 1. Start Sesi Live Baru
-  async startSession(
-    createLiveSessionDto: CreateLiveSessionDto,
-  ): Promise<LiveSession> {
-
-    const session = this.sessionRepository.create({
-      trip: {
-        id: createLiveSessionDto.tripId,
-      } as any,
+  async create(createDto: CreateLiveSessionDto) {
+    const trip = await this.tripRepository.findOneBy({
+      id: createDto.tripId,
     });
 
+    if (!trip) {
+      throw new NotFoundException('Trip tidak ditemukan');
+    }
+
+    const currentStop = createDto.currentStopId
+      ? await this.routeStopRepository.findOneBy({
+        id: createDto.currentStopId,
+      })
+      : null;
+
+    const nextStop = createDto.nextStopId
+      ? await this.routeStopRepository.findOneBy({
+        id: createDto.nextStopId,
+      })
+      : null;
+
+    const session = this.sessionRepository.create({ ...createDto });
     return await this.sessionRepository.save(session);
   }
 
@@ -82,4 +103,105 @@ export class LiveSessionsService {
 
     return await this.sessionRepository.save(session);
   }
+
+  async getSessionByTripId(tripId: number): Promise<LiveSession> {
+    const session = await this.sessionRepository.findOne({
+      where: {
+        trip: {
+          id: tripId,
+        },
+      },
+      relations: {
+        trip: true,
+        currentStop: true,
+        nextStop: true,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException(
+        `Live session untuk trip ${tripId} tidak ditemukan`,
+      );
+    }
+
+    return session;
+  }
+
+  async update(
+    id: number,
+    dto: UpdateLiveSessionDto,
+  ): Promise<LiveSession> {
+    const session = await this.sessionRepository.findOne({
+      where: { id },
+      relations: {
+        currentStop: true,
+        nextStop: true,
+        trip: true,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Live session tidak ditemukan');
+    }
+
+    if (dto.currentStopId) {
+      const currentStop = await this.routeStopRepository.findOneBy({
+        id: dto.currentStopId,
+      });
+
+      if (!currentStop) {
+        throw new NotFoundException('Current stop tidak ditemukan');
+      }
+
+      session.currentStop = currentStop;
+    }
+
+    if (dto.nextStopId) {
+      const nextStop = await this.routeStopRepository.findOneBy({
+        id: dto.nextStopId,
+      });
+
+      if (!nextStop) {
+        throw new NotFoundException('Next stop tidak ditemukan');
+      }
+
+      session.nextStop = nextStop;
+    }
+
+    if (dto.currentSequence !== undefined) {
+      session.currentSequence = dto.currentSequence;
+    }
+
+    if (dto.nextSequence !== undefined) {
+      session.nextSequence = dto.nextSequence;
+    }
+
+    if (dto.isAtStop !== undefined) {
+      session.isAtStop = dto.isAtStop;
+    }
+
+    if (dto.status) {
+      session.status = dto.status;
+    }
+
+    return await this.sessionRepository.save(session);
+  }
+
+  async updateStopStatus(
+    sessionId: number,
+    isAtStop: boolean,
+  ): Promise<LiveSession> {
+    const session = await this.sessionRepository.findOne({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Live session tidak ditemukan');
+    }
+
+    session.isAtStop = isAtStop;
+
+    return await this.sessionRepository.save(session);
+  }
 }
+
