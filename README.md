@@ -96,3 +96,373 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Vehicle and Driver API Documentation
+
+# Driver API
+
+## 1.Get All Drivers
+
+### Request
+
+```http
+GET http://localhost:3000/drivers
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+  {
+    "id": 1,
+    "name": "M. Ramadhan Titan",
+    "phone": "081234567890",
+    "licenseNumber": "SIM-9999-12345",
+    "status": "ACTIVE",
+    "createdAt": "2026-07-07T15:51:23.624Z",
+    "updatedAt": "2026-07-07T15:51:23.624Z"
+  },
+  {
+    "id": 3,
+    "name": "AgusA",
+    "phone": "081234567891",
+    "licenseNumber": "SIM-9299-12345",
+    "status": "INACTIVE",
+    "createdAt": "2026-07-07T15:56:25.184Z",
+    "updatedAt": "2026-07-07T19:02:20.227Z"
+  }
+]
+```
+
+---
+
+## 2.Get Driver By ID
+
+### Request
+
+```http
+GET http://localhost:3000/drivers/1
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 1,
+  "name": "M. Ramadhan Titan",
+  "phone": "081234567890",
+  "licenseNumber": "SIM-9999-12345",
+  "status": "ACTIVE",
+  "createdAt": "2026-07-07T15:51:23.624Z",
+  "updatedAt": "2026-07-07T15:51:23.624Z"
+}
+```
+
+---
+
+## 3.Create Driver
+
+### Request
+
+```http
+POST http://localhost:3000/drivers
+```
+
+Body
+
+```json
+{
+  "name": "Agus",
+  "phone": "081234567830",
+  "licenseNumber": "SIM-9299-12345",
+  "status": "ACTIVE"
+}
+```
+
+### Response
+
+Status : `201 Created`
+
+```json
+{
+  "id": 4,
+  "name": "Agus",
+  "phone": "081234567833",
+  "licenseNumber": "SIM-9299-12245",
+  "status": "ACTIVE",
+  "createdAt": "2026-07-08T04:40:18.604Z",
+  "updatedAt": "2026-07-08T04:40:18.604Z"
+}
+```
+
+---
+
+## 4.Update Driver
+
+### Request
+
+```http
+PATCH http://localhost:3000/drivers/4
+```
+
+Body
+
+```json
+{
+  "name": "Adam",
+  "phone": "081234567833",
+  "licenseNumber": "SIM-9299-12245",
+  "status": "ACTIVE"
+}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 4,
+  "name": "Adam",
+  "phone": "081234567833",
+  "licenseNumber": "SIM-9299-12245",
+  "status": "ACTIVE",
+  "createdAt": "2026-07-08T04:40:18.604Z",
+  "updatedAt": "2026-07-08T04:41:11.894Z"
+}
+```
+
+---
+
+## 5.Delete Driver
+
+### Request
+
+```http
+DELETE http://localhost:3000/drivers/4
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 4,
+  "name": "Adam",
+  "phone": "081234567833",
+  "licenseNumber": "SIM-9299-12245",
+  "status": "INACTIVE",
+  "createdAt": "2026-07-08T04:40:18.604Z",
+  "updatedAt": "2026-07-08T04:42:18.150Z"
+}
+```
+
+# Vehicle API
+
+## 1.Get All Vehicles
+
+### Request
+
+```http
+GET http://localhost:3000/vehcicles
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+  {
+    "id": 1,
+    "plateNumber": "N 1234 AB",
+    "vehicleCode": "AG-01",
+    "capacity": 12,
+    "status": "ACTIVE",
+    "createdAt": "2026-07-08T04:28:43.840Z",
+    "updatedAt": "2026-07-08T04:28:43.840Z"
+  },
+  {
+    "id": 4,
+    "plateNumber": "N 1233 AB",
+    "vehicleCode": "AG-02",
+    "capacity": 12,
+    "status": "INACTIVE",
+    "createdAt": "2026-07-08T04:29:24.117Z",
+    "updatedAt": "2026-07-08T04:30:26.098Z"
+  }
+]
+```
+
+---
+
+## 2.Get Driver By ID
+
+### Request
+
+```http
+GET http://localhost:3000/vehicles/4
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 4,
+  "plateNumber": "N 1233 AB",
+  "vehicleCode": "AG-02",
+  "capacity": 12,
+  "status": "ACTIVE",
+  "createdAt": "2026-07-08T04:29:24.117Z",
+  "updatedAt": "2026-07-08T04:29:24.117Z"
+}
+```
+
+---
+
+## 3.Create Driver
+
+### Request
+
+```http
+POST http://localhost:3000/vehicles
+```
+
+Body
+
+```json
+{
+  "plateNumber": "N 1233 AB",
+  "vehicleCode": "AG-02",
+  "capacity": 12,
+  "status": "ACTIVE"
+}
+```
+
+### Response
+
+Status : `201 Created`
+
+```json
+{
+  "id": 4,
+  "plateNumber": "N 1233 AB",
+  "vehicleCode": "AG-02",
+  "capacity": 12,
+  "status": "ACTIVE",
+  "createdAt": "2026-07-08T04:29:24.117Z",
+  "updatedAt": "2026-07-08T04:29:24.117Z"
+}
+```
+
+---
+
+## 4.Update Driver
+
+### Request
+
+```http
+PATCH http://localhost:3000/vehicles/4
+```
+
+Body
+
+```json
+{
+  "plateNumber": "N 1233 AB",
+  "vehicleCode": "AG-02",
+  "capacity": 12,
+  "status": "MAINTENANCE"
+}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 4,
+  "plateNumber": "N 1233 AB",
+  "vehicleCode": "AG-02",
+  "capacity": 12,
+  "status": "MAINTENANCE",
+  "createdAt": "2026-07-08T04:29:24.117Z",
+  "updatedAt": "2026-07-08T04:30:04.234Z"
+}
+```
+
+---
+
+## 5.Delete Driver
+
+### Request
+
+```http
+DELETE http://localhost:3000/vehicles/4
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 4,
+  "plateNumber": "N 1233 AB",
+  "vehicleCode": "AG-02",
+  "capacity": 12,
+  "status": "INACTIVE",
+  "createdAt": "2026-07-08T04:29:24.117Z",
+  "updatedAt": "2026-07-08T04:30:26.098Z"
+}
+```
+
+---
+
+# Error Response
+
+## Validation Error
+
+Status : `400 Bad Request`
+
+```json
+{
+  "statusCode": 400,
+  "message": ["phoneNumber should not be empty"],
+  "error": "Bad Request"
+}
+```
+
+---
+
+## Not Found
+
+Status : `404 Not Found`
+
+```json
+{
+  "statusCode": 404,
+  "message": "Driver not found"
+}
+```
+
+---
+
+## Conflict
+
+Status : `409 Conflict`
+
+```json
+{
+  "statusCode": 409,
+  "message": "Phone number or license number already exists"
+}
+```

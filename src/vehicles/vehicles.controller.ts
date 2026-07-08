@@ -8,13 +8,28 @@ import { Vehicle } from './entities/vehicle.entity';
 export class VehiclesController {
   constructor(private readonly vehiclesService: VehiclesService) { }
 
-  @Post()
-  async create(@Body() createVehicleDto: CreateVehicleDto): Promise<Vehicle> {
-    return await this.vehiclesService.create(createVehicleDto);
-  }
-
   @Get()
-  async findAll(): Promise<Vehicle[]> {
-    return await this.vehiclesService.findAll();
-  }
+   async findAll(): Promise<Vehicle[]> {
+     return await this.vehiclesService.findAll();
+   }
+ 
+   @Get(':id')
+   async findOne(@Param('id') id: number): Promise<Vehicle> {
+     return await this.vehiclesService.findOne(id);
+   }
+ 
+   @Post()
+   async create(@Body() createVehicleDto: CreateVehicleDto): Promise<Vehicle> {
+     return await this.vehiclesService.create(createVehicleDto);
+   }
+ 
+   @Patch(':id')
+   async update(@Param('id') id: number, @Body() input: UpdateVehicleDto): Promise<Vehicle> {
+     return await this.vehiclesService.update(id, input);
+   }
+ 
+   @Delete(':id')
+   async remove(@Param('id') id: number): Promise<Vehicle> {
+   return  await this.vehiclesService.deactivate(id);
+   }
 }
