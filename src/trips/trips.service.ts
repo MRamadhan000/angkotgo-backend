@@ -50,6 +50,7 @@ export class TripsService {
       relations: {
         schedule: true,
         route: true,
+        liveSessions :true,
       },
     });
 

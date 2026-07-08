@@ -79,9 +79,11 @@ export class SchedulesService {
       relations: {
         driver: true,
         vehicle: true,
-        trips: true,
+        trips: {
+          route : true
+        },
       },
-      order: { workDate: 'DESC', shift: 'ASC' },
+      order: { workDate: 'ASC', shift: 'ASC' },
     });
   }
 }
