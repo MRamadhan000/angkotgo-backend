@@ -106,4 +106,21 @@ export class DriversService {
     }
     return driver;
   }
+
+  // Login Driver
+  async login(phone: string): Promise<Driver> {
+    const driver = await this.driverRepository.findOne({
+      where: { phone },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Nomor HP tidak terdaftar');
+    }
+
+    if (driver.status === DriverStatus.INACTIVE) {
+      throw new ConflictException('Status driver tidak aktif');
+    }
+
+    return driver;
+  }
 }
