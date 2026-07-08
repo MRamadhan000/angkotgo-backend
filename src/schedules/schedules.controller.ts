@@ -17,6 +17,11 @@ export class SchedulesController {
     return await this.schedulesService.findAll();
   }
 
+  @Get('user/:userId')
+  async findByUserId(@Param('userId', ParseIntPipe) userId: number): Promise<Schedule[]> {
+    return await this.schedulesService.findByUserId(userId);
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<Schedule> {
     return await this.schedulesService.findOne(id);

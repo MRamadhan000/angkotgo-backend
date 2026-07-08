@@ -71,4 +71,17 @@ export class SchedulesService {
     await this.scheduleRepository.remove(schedule);
     return { message: `Schedule ID ${id} berhasil dihapus beserta seluruh trips terkait.` };
   }
+
+  // 6. Ambil Schedule Berdasarkan User/Driver ID
+  async findByUserId(userId: number): Promise<Schedule[]> {
+    return await this.scheduleRepository.find({
+      where: { driver: { id: userId } },
+      relations: {
+        driver: true,
+        vehicle: true,
+        trips: true,
+      },
+      order: { workDate: 'DESC', shift: 'ASC' },
+    });
+  }
 }
