@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, ParseArrayPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, ParseArrayPipe, Patch } from '@nestjs/common';
 import { RouteStopsService } from '../services/route-stops.service';
 import { CreateRouteStopDto } from '../dto/create-route.dto';
 import { RouteStop } from '../entities/route-stop.entity';
@@ -29,6 +29,14 @@ export class RouteStopsController {
     async findByRoute(@Param('routeId', ParseIntPipe) routeId: number): Promise<RouteStop[]> {
         return await this.routeStopsService.findByRoute(routeId);
     }
+
+      @Patch(':id')
+      async update(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateRouteStopDto: any,
+      ) {
+        return await this.routeStopsService.update(id, updateRouteStopDto);
+      }
 
     // DELETE /routes/:routeId/stops/:id
     @Delete(':id')

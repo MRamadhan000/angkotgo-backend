@@ -301,7 +301,7 @@ Status : `200 OK`
 
 ---
 
-## 2.Get Driver By ID
+## 2.Get Vehicle By ID
 
 ### Request
 
@@ -327,7 +327,7 @@ Status : `200 OK`
 
 ---
 
-## 3.Create Driver
+## 3.Create Data Vehicle
 
 ### Request
 
@@ -364,7 +364,7 @@ Status : `201 Created`
 
 ---
 
-## 4.Update Driver
+## 4.Update Data Vehicle
 
 ### Request
 
@@ -401,7 +401,7 @@ Status : `200 OK`
 
 ---
 
-## 5.Delete Driver
+## 5.Delete Vehicle
 
 ### Request
 
@@ -422,6 +422,527 @@ Status : `200 OK`
   "status": "INACTIVE",
   "createdAt": "2026-07-08T04:29:24.117Z",
   "updatedAt": "2026-07-08T04:30:26.098Z"
+}
+```
+
+---
+
+# Route API
+
+## 1.Get All Route
+
+### Request
+
+```http
+GET http://localhost:3000/routes
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+  {
+    "id": 2,
+    "code": "A-03",
+    "name": "Route A",
+    "direction": "GO",
+    "color": "blue",
+    "distanceKm": "134.00",
+    "estimatedDurationMinutes": 120,
+    "isActive": true,
+    "createdAt": "2026-07-08T13:53:40.207Z",
+    "updatedAt": "2026-07-09T06:51:41.398Z"
+  }
+]
+```
+
+---
+
+## 2.Get Route By ID
+
+### Request
+
+```http
+GET http://localhost:3000/routes/{id}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 2,
+  "code": "A-03",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": "134.00",
+  "estimatedDurationMinutes": 120,
+  "isActive": true,
+  "createdAt": "2026-07-08T13:53:40.207Z",
+  "updatedAt": "2026-07-09T06:51:41.398Z",
+  "points": [
+    {
+      "id": 1,
+      "sequence": 1,
+      "latitude": "-7.98394442",
+      "longitude": "112.65139125"
+    },
+    {
+      "id": 3,
+      "sequence": 2,
+      "latitude": "-7.98390442",
+      "longitude": "112.62139125"
+    }
+  ],
+  "stops": [
+    {
+      "id": 1,
+      "name": "Halte B",
+      "sequence": 2,
+      "latitude": "-7.98390442",
+      "longitude": "112.62139125",
+      "radiusMeter": 12,
+      "isTerminal": true
+    }
+  ]
+}
+```
+
+---
+
+## 3.Create Route
+
+### Request
+
+```http
+POST http://localhost:3000/routes
+```
+
+Body
+
+```json
+{
+  "code": "A-01",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": 120,
+  "estimatedDurationMinutes": 120,
+  "isActive": true
+}
+```
+
+### Response
+
+Status : `201 Created`
+
+```json
+{
+  "id": 7,
+  "code": "A-01",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": 120,
+  "estimatedDurationMinutes": 120,
+  "isActive": true,
+  "createdAt": "2026-07-09T06:56:03.115Z",
+  "updatedAt": "2026-07-09T06:56:03.115Z"
+}
+```
+
+---
+
+## 4.Update Route
+
+### Request
+
+```http
+PATCH http://localhost:3000/routes/{id}
+```
+
+Body
+
+```json
+{
+  "code": "A-03",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": 134,
+  "estimatedDurationMinutes": 120,
+  "isActive": true
+}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 2,
+  "code": "A-03",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": 134,
+  "estimatedDurationMinutes": 120,
+  "isActive": true,
+  "createdAt": "2026-07-08T13:53:40.207Z",
+  "updatedAt": "2026-07-09T06:51:41.398Z"
+}
+```
+
+---
+
+## 5.Delete Driver
+
+### Request
+
+```http
+DELETE http://localhost:3000/routes/{id}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "message": "Rute dengan ID 2 berhasil dihapus beserta titik koordinatnya."
+}
+```
+
+---
+
+# Route Point API
+
+## 1.Get All Route Point
+
+### Request
+
+```http
+GET http://localhost:3000/routes/{id}/points
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+  {
+    "id": 5,
+    "sequence": 1,
+    "latitude": "-7.98390442",
+    "longitude": "112.62139125"
+  }
+]
+```
+
+---
+
+## 2.Get Route By ID
+
+### Request
+
+```http
+GET http://localhost:3000/routes/{id}/points
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+  {
+    "id": 5,
+    "sequence": 1,
+    "latitude": "-7.98390442",
+    "longitude": "112.62139125"
+  }
+]
+```
+
+---
+
+## 3.Create Route Point
+
+### Request
+
+```http
+POST http://localhost:3000/routes/{id}/points
+```
+
+Body
+
+```json
+{
+  "sequence": 1,
+  "latitude": -7.98390442,
+  "longitude": 112.62139125
+}
+```
+
+### Response
+
+Status : `201 Created`
+
+```json
+{
+  "id": 5,
+  "sequence": 1,
+  "latitude": -7.98390442,
+  "longitude": 112.62139125,
+  "route": {
+    "id": 7,
+    "code": "A-01",
+    "name": "Route A",
+    "direction": "GO",
+    "color": "blue",
+    "distanceKm": "120.00",
+    "estimatedDurationMinutes": 120,
+    "isActive": true,
+    "createdAt": "2026-07-09T06:56:03.115Z",
+    "updatedAt": "2026-07-09T06:56:03.115Z"
+  }
+}
+```
+
+---
+
+## 4.Update Route Point
+
+### Request
+
+```http
+PATCH http://localhost:3000/routes/{id}
+```
+
+Body
+
+```json
+{
+  "code": "A-03",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": 134,
+  "estimatedDurationMinutes": 120,
+  "isActive": true
+}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "id": 2,
+  "code": "A-03",
+  "name": "Route A",
+  "direction": "GO",
+  "color": "blue",
+  "distanceKm": 134,
+  "estimatedDurationMinutes": 120,
+  "isActive": true,
+  "createdAt": "2026-07-08T13:53:40.207Z",
+  "updatedAt": "2026-07-09T06:51:41.398Z"
+}
+```
+
+---
+
+## 5.Delete Route Point
+
+### Request
+
+```http
+DELETE http://localhost:3000/routes/{id_route}/points/{id_route_point}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+  "message": "Titik koordinat ID 5 berhasil dihapus."
+}
+```
+
+---
+
+# Route Point Stop API
+
+## 1.Get All Route Point Stop
+
+### Request
+
+```http
+GET http://localhost:3000/routes/{id_route}/stops
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+  {
+    "id": 3,
+    "name": "Halte A",
+    "sequence": 2,
+    "latitude": "-7.98390442",
+    "longitude": "112.62139125",
+    "radiusMeter": 12,
+    "isTerminal": true
+  }
+]
+```
+
+---
+
+## 2.Get Route By ID
+
+### Request
+
+```http
+GET http://localhost:3000/routes/{id_route}/stops
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+    {
+        "id": 3,
+        "name": "Halte A",
+        "sequence": 2,
+        "latitude": "-7.98390442",
+        "longitude": "112.62139125",
+        "radiusMeter": 12,
+        "isTerminal": true
+    }
+]
+```
+
+---
+
+## 3.Create Route Point Stop
+
+### Request
+
+```http
+POST http://localhost:3000/routes/{id_route}/stops
+```
+
+Body
+
+```json
+{
+    "name": "Halte A",
+    "sequence": 2,
+    "latitude": -7.98390442,
+    "longitude": 112.62139125,
+    "radiusMeter":12,
+    "isTerminal":true
+}
+```
+
+### Response
+
+Status : `201 Created`
+
+```json
+{
+    "id": 3,
+    "name": "Halte A",
+    "sequence": 2,
+    "latitude": -7.98390442,
+    "longitude": 112.62139125,
+    "radiusMeter": 12,
+    "isTerminal": true,
+    "route": {
+        "id": 7,
+        "code": "A-01",
+        "name": "Route A",
+        "direction": "GO",
+        "color": "blue",
+        "distanceKm": "120.00",
+        "estimatedDurationMinutes": 120,
+        "isActive": true,
+        "createdAt": "2026-07-09T06:56:03.115Z",
+        "updatedAt": "2026-07-09T06:56:03.115Z"
+    }
+}
+```
+
+---
+
+## 4.Update Route Point
+
+### Request
+
+```http
+PATCH http://localhost:3000/routes/{id_route}/stops/{id_route_point_stop}
+```
+
+Body
+
+```json
+{
+    "name": "Halte C",
+    "sequence": 2,
+    "latitude": -7.98390442,
+    "longitude": 112.62139125,
+    "radiusMeter":12,
+    "isTerminal":true
+}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+    "id": 3,
+    "name": "Halte C",
+    "sequence": 2,
+    "latitude": -7.98390442,
+    "longitude": 112.62139125,
+    "radiusMeter": 12,
+    "isTerminal": true
+}
+```
+
+---
+
+## 5.Delete Route Point
+
+### Request
+
+```http
+DELETE http://localhost:3000/routes/{id_route}/stops/{id_route_point_stop}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+    "message": "Halte dengan ID 3 berhasil dihapus."
 }
 ```
 
