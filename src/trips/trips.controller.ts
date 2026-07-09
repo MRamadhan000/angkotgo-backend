@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from 
 import { TripsService } from './trips.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { Trip } from './entities/trip.entity';
+import { UpdateTripDto } from './dto/update-trip.dto';
 
 @Controller('trips')
 export class TripsController {
-  constructor(private readonly tripsService: TripsService) {}
+  constructor(private readonly tripsService: TripsService) { }
 
   @Post()
   async create(@Body() createTripDto: CreateTripDto): Promise<Trip> {
@@ -23,7 +24,10 @@ export class TripsController {
   }
 
   @Patch(':id')
-  async update(@Param('id', ParseIntPipe) id: number, @Body() updateTripDto: any): Promise<Trip> {
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateTripDto: UpdateTripDto,
+  ) {
     return await this.tripsService.update(id, updateTripDto);
   }
 

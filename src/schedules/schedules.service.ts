@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Schedule } from './entities/schedule.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Injectable()
 export class SchedulesService {
@@ -31,7 +32,7 @@ export class SchedulesService {
         driver: true,
         vehicle: true,
         trips: {
-          route : true,
+          route: true,
         },
       },
       order: { workDate: 'DESC', shift: 'ASC' },
@@ -45,7 +46,9 @@ export class SchedulesService {
       relations: {
         driver: true,
         vehicle: true,
-        trips: true,
+        trips: {
+          route : true
+        },
       },
     });
 
@@ -56,15 +59,28 @@ export class SchedulesService {
   }
 
   // 4. Update Kontrak Schedule
-  async update(id: number, updateScheduleDto: any): Promise<Schedule> {
-    const schedule = await this.findOne(id);
+  async update(id: number, updateScheduleDto: UpdateScheduleDto) {
+    // 1. Cari jadwal yang mau di-update
+    const schedule = await this.scheduleRepository.findOneBy({ id });
+    if (!schedule) {
+      throw new NotFoundException('Jadwal tidak ditemukan');
+    }
 
-    // Jika ada ID relasi baru yang di-update, petakan ulang objeknya
-    if (updateScheduleDto.driverId) schedule.driver = { id: updateScheduleDto.driverId } as any;
-    if (updateScheduleDto.vehicleId) schedule.vehicle = { id: updateScheduleDto.vehicleId } as any;
+    // 2. Hanya masukkan field yang diizinkan saja ke objek entity
+    if (updateScheduleDto.workDate !== undefined) {
+      schedule.workDate = updateScheduleDto.workDate;
+    }
 
-    const updated = this.scheduleRepository.merge(schedule, updateScheduleDto);
-    return await this.scheduleRepository.save(updated);
+    if (updateScheduleDto.shift !== undefined) {
+      schedule.shift = updateScheduleDto.shift;
+    }
+
+    if (updateScheduleDto.createdAt !== undefined) {
+      schedule.createdAt = new Date(updateScheduleDto.createdAt);
+    }
+
+    // 3. Simpan perubahan (Data driver, vehicle, dan trips aman tidak tersentuh)
+    return await this.scheduleRepository.save(schedule);
   }
 
   // 5. Hapus Schedule (Otomatis cascade delete trips di dalamnya)
@@ -82,7 +98,7 @@ export class SchedulesService {
         driver: true,
         vehicle: true,
         trips: {
-          route : true
+          route: true
         },
       },
       order: { workDate: 'ASC', shift: 'ASC' },

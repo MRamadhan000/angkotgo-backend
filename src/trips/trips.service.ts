@@ -50,7 +50,7 @@ export class TripsService {
       relations: {
         schedule: true,
         route: true,
-        liveSessions :true,
+        liveSessions: true,
       },
     });
 
@@ -61,28 +61,14 @@ export class TripsService {
     return trip;
   }
 
-  async update(
-    id: number,
-    updateTripDto: UpdateTripDto,
-  ): Promise<Trip> {
-    const trip = await this.findOne(id);
-
-    if (updateTripDto.scheduleId) {
-      trip.schedule = {
-        id: updateTripDto.scheduleId,
-      } as any;
+  async update(id: number, updateTripDto: UpdateTripDto): Promise<Trip> {
+    // 1. Cari data trip berdasarkan ID
+    const trip = await this.tripRepository.findOneBy({ id });
+    if (!trip) {
+      throw new NotFoundException(`Trip dengan ID ${id} tidak ditemukan`);
     }
 
-    if (updateTripDto.routeId) {
-      trip.route = {
-        id: updateTripDto.routeId,
-      } as any;
-    }
-
-    if (updateTripDto.tripNumber !== undefined) {
-      trip.tripNumber = updateTripDto.tripNumber;
-    }
-
+    // 2. Hanya ijinkan update untuk field planned dan status saja
     if (updateTripDto.plannedDeparture !== undefined) {
       trip.plannedDeparture = updateTripDto.plannedDeparture;
     }
@@ -95,6 +81,11 @@ export class TripsService {
       trip.status = updateTripDto.status;
     }
 
+    if (updateTripDto.tripNumber !== undefined) {
+      trip.tripNumber = updateTripDto.tripNumber;
+    }
+
+    // 3. Simpan perubahan (Data tripNumber, actualDeparture, actualArrival aman terjaga)
     return await this.tripRepository.save(trip);
   }
 
