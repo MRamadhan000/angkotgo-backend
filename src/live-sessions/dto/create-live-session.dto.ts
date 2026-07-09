@@ -11,7 +11,7 @@ import { SessionStatus } from '../entities/live-session.entity';
 export class CreateLiveSessionDto {
   @IsInt()
   @Min(1)
-  tripId: number;
+  tripId!: number;
 
   @IsOptional()
   @IsEnum(SessionStatus)
@@ -27,7 +27,7 @@ export class CreateLiveSessionDto {
   @Min(1)
   currentSequence?: number;
 
-  @IsOptional()
+  @IsOptional() 
   @IsInt()
   @Min(1)
   nextStopId?: number;
