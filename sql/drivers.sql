@@ -12,7 +12,7 @@ INSERT INTO drivers (
 ) VALUES
 (
     'Budi Santoso',
-    '081234567801',
+    '08123456789',
     'SIMA001',
     'ACTIVE',
     NOW(),

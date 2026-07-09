@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LiveSession, SessionStatus } from './entities/live-session.entity';
@@ -26,7 +26,10 @@ export class LiveSessionsService {
   ) { }
 
   // 1. Start Sesi Live Baru
+  // live-sessions.service.ts
+
   async create(createDto: CreateLiveSessionDto) {
+    // 1. Validasi: Cek apakah Trip ada di database
     const trip = await this.tripRepository.findOneBy({
       id: createDto.tripId,
     });
@@ -35,19 +38,38 @@ export class LiveSessionsService {
       throw new NotFoundException('Trip tidak ditemukan');
     }
 
+    // 2. Validasi Tambahan: Cek apakah Trip ini SUDAH MEMILIKI sesi yang masih AKTIF
+    const activeSession = await this.sessionRepository.findOne({
+      where: {
+        trip: { id: createDto.tripId },
+      },
+    });
+
+    if (activeSession) {
+      throw new ConflictException(`Trip dengan ID ${createDto.tripId} sudah memiliki live session yang aktif.`);
+    }
+
+    // 3. Ambil data halte (jika dikirim oleh client)
     const currentStop = createDto.currentStopId
-      ? await this.routeStopRepository.findOneBy({
-        id: createDto.currentStopId,
-      })
-      : null;
+      ? (await this.routeStopRepository.findOneBy({ id: createDto.currentStopId })) ?? undefined
+      : undefined;
 
     const nextStop = createDto.nextStopId
-      ? await this.routeStopRepository.findOneBy({
-        id: createDto.nextStopId,
-      })
-      : null;
+      ? (await this.routeStopRepository.findOneBy({ id: createDto.nextStopId })) ?? undefined
+      : undefined;
 
-    const session = this.sessionRepository.create({ ...createDto });
+    // 4. Strukturkan data untuk disimpan
+    const sessionData: Partial<LiveSession> = {
+      status: createDto.status ?? SessionStatus.ACTIVE, // Default ke ACTIVE jika kosong
+      currentSequence: createDto.currentSequence,
+      nextSequence: createDto.nextSequence,
+      isAtStop: createDto.isAtStop ?? false,
+      trip: trip,
+      currentStop: currentStop,
+      nextStop: nextStop,
+    };
+
+    const session = this.sessionRepository.create(sessionData);
     return await this.sessionRepository.save(session);
   }
 
