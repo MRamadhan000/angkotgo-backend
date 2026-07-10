@@ -6,6 +6,7 @@ import { AddLiveLocationDto } from './dto/add-live-location.dto';
 import { SessionStatus } from './entities/live-session.entity';
 import { UpdateLiveSessionDto } from './dto/update-live-session.dto';
 import { UpdateStopStatusDto } from './dto/update-status-stop.dto';
+import { RouteDirection } from 'src/routes/entities/route.entity';
 
 @Controller('live-sessions')
 export class LiveSessionsController {
@@ -19,21 +20,36 @@ export class LiveSessionsController {
 
   // NEW: GET /live-sessions/active/by-code (Melihat semua angkot aktif berdasarkan kode rute)
   // Catatan: Ditaruh di atas :id agar tidak bentrok (routing precedence)
+
   @Get('active/by-code')
-  async getActiveAngkotByCode(@Query('code') routeCode: string) {
+  async getActiveAngkotByCode(
+    @Query('code') routeCode: string,
+    @Query('direction') direction: RouteDirection, // Menambahkan query param direction
+  ) {
     if (!routeCode) {
       throw new BadRequestException('Query parameter "code" (kode angkot) wajib diisi');
     }
-    
-    const activeAngkot = await this.liveSessionsService.getActiveAngkotByCode(routeCode);
-    
+
+    if (!direction) {
+      throw new BadRequestException('Query parameter "direction" (GO atau RETURN) wajib diisi');
+    }
+
+    // Validasi tambahan untuk memastikan isi direction hanya GO atau RETURN
+    if (direction !== RouteDirection.GO && direction !== RouteDirection.RETURN) {
+      throw new BadRequestException('Query parameter "direction" harus berupa "GO" atau "RETURN"');
+    }
+
+    // Mengirimkan kedua parameter ke service
+    const activeAngkot = await this.liveSessionsService.getActiveAngkotByCode(routeCode, direction);
+
     return {
       success: true,
-      message: `Berhasil mendapatkan data live angkot rute ${routeCode.toUpperCase()}`,
+      message: `Berhasil mendapatkan data live angkot rute ${routeCode.toUpperCase()} dengan arah ${direction}`,
       count: activeAngkot.length,
       data: activeAngkot,
     };
   }
+
 
   // 3. GET /live-sessions/:id (Melihat rute tracking maps beserta array koordinatnya)
   @Get(':id')

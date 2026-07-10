@@ -196,8 +196,8 @@ export class PassengerService {
       });
     }
 
-    // this.logger.log('========== ACTIVE BUSES ==========');
-    // this.logger.log(JSON.stringify(activeBuses, null, 2));
+    this.logger.log('========== ACTIVE BUSES ==========');
+    this.logger.log(JSON.stringify(activeBuses, null, 2));
 
     const filteredBuses = this.filterBusesForPassenger(activeBuses, origin_seq);
     this.logger.log('\n===== STEP F : FILTERED ACTIVE BUSES =====');
@@ -218,27 +218,25 @@ export class PassengerService {
     };
   }
 
-  private filterBusesForPassenger(activeBuses: any[], originSeq: number): any[] {
+
+  private filterBusesForPassenger(
+    activeBuses: any[],
+    originSeq: number,
+  ): any[] {
     return activeBuses.filter((bus) => {
-      const busCurrentSeq = Number(bus.currentsequence);
-      const passengerOriginSeq = Number(originSeq);
-      const isAtStop = bus.isstopincurrentstop === true || bus.isstopincurrentstop === 'true';
+      const currentSeq = Number(bus.currentsequence);
+      const passengerSeq = Number(originSeq);
 
-      // KONDISI 1: Bus tepat berada di halte asal user saat ini
-      if (busCurrentSeq === passengerOriginSeq) {
-        // Hanya lolos jika busnya masih berhenti (menunggu penumpang)
-        return isAtStop;
-      }
+      const isAtStop =
+        bus.isstopincurrentstop === true ||
+        bus.isstopincurrentstop === 'true';
 
-      // KONDISI 2: Bus berada di sekuens awal/halte-halte sebelum posisi user
-      // (Contoh: User di seq 60, Bus masih di seq 1 atau seq 30)
-      if (busCurrentSeq < passengerOriginSeq) {
-        return true; // Lolos! Karena bus ini berjalan menuju posisi user
-      }
-
-      // KONDISI 3: Bus sudah melewati sekuens user (busCurrentSeq > passengerOriginSeq)
-      return false;
+      return (
+        currentSeq < passengerSeq ||
+        (currentSeq === passengerSeq && isAtStop)
+      );
     });
   }
+
 
 }

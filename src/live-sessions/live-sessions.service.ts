@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Any, Repository } from 'typeorm';
 import { LiveSession, SessionStatus } from './entities/live-session.entity';
 import { LiveLocation } from './entities/live-location.entity';
 import { CreateLiveSessionDto } from './dto/create-live-session.dto';
@@ -8,6 +8,7 @@ import { AddLiveLocationDto } from './dto/add-live-location.dto';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { Trip } from 'src/trips/entities/trip.entity';
 import { UpdateLiveSessionDto } from './dto/update-live-session.dto';
+import { RouteDirection } from 'src/routes/entities/route.entity';
 
 @Injectable()
 export class LiveSessionsService {
@@ -226,57 +227,71 @@ export class LiveSessionsService {
     return await this.sessionRepository.save(session);
   }
 
-  async getActiveAngkotByCode(routeCode: string) {
-  const sessions = await this.sessionRepository.createQueryBuilder('session')
-    // 1. Join ke Trip dan Route
-    .innerJoinAndSelect('session.trip', 'trip')
-    .innerJoinAndSelect('trip.route', 'route')
-    
-    // 2. Join ke Schedule untuk mendapatkan Driver dan Vehicle
-    .innerJoinAndSelect('trip.schedule', 'schedule')
-    .leftJoinAndSelect('schedule.driver', 'driver')   // Asumsi nama relasi di Schedule adalah 'driver'
-    .leftJoinAndSelect('schedule.vehicle', 'vehicle') // Asumsi nama relasi di Schedule adalah 'vehicle'
-    
-    // 3. Join Halte & Lokasi
-    .leftJoinAndSelect('session.currentStop', 'currentStop')
-    .leftJoinAndSelect('session.nextStop', 'nextStop')
-    .leftJoinAndSelect('session.locations', 'location')
-    
-    // 4. Filter & Sorting
-    .where('session.status = :status', { status: SessionStatus.ACTIVE })
-    .andWhere('route.code = :routeCode', { routeCode })
-    .orderBy('location.id', 'DESC')
-    .getMany();
 
-  // 5. Mapping Response agar bersih dan rapi
-  return sessions.map(session => ({
-    id: session.id,
-    status: session.status,
-    isAtStop: session.isAtStop,
-    currentSequence: session.currentSequence,
-    nextSequence: session.nextSequence,
-    startedAt: session.startedAt,
-    route: {
-      code: session.trip.route.code,
-      name: session.trip.route.name,
-      direction: session.trip.route.direction,
-    },
-    // Menampilkan data driver dan kendaraan yang sedang jalan
-    driver: session.trip.schedule?.driver ? {
-      id: session.trip.schedule.driver.id,
-      name: session.trip.schedule.driver.name,
-    } : null,
-    vehicle: session.trip.schedule?.vehicle ? {
-      id: session.trip.schedule.vehicle.id,
-      plateNumber: session.trip.schedule.vehicle.plateNumber, // Contoh: N 1234 AB
-      capacity: session.trip.schedule.vehicle.capacity,
-    } : null,
-    currentStop: session.currentStop,
-    nextStop: session.nextStop,
-    latestLocation: session.locations[0] || null, 
-  }));
-}
+  async getActiveAngkotByCode(routeCode: string, direction: RouteDirection) {
+    const sessions = await this.sessionRepository.createQueryBuilder('session')
+      // 1. Join ke Trip dan Route
+      .innerJoinAndSelect('session.trip', 'trip')
+      .innerJoinAndSelect('trip.route', 'route')
 
+      // 2. Join ke Schedule untuk mendapatkan Driver dan Vehicle
+      .innerJoinAndSelect('trip.schedule', 'schedule')
+      .leftJoinAndSelect('schedule.driver', 'driver')
+      .leftJoinAndSelect('schedule.vehicle', 'vehicle')
+
+      // 3. Join Halte & Lokasi
+      .leftJoinAndSelect('session.currentStop', 'currentStop')
+      .leftJoinAndSelect('session.nextStop', 'nextStop')
+      .leftJoinAndSelect('session.locations', 'location')
+
+      // 4. Filter berdasarkan Status Active, Kode Trayek, dan Arah (Direction)
+      .where('session.status = :status', { status: SessionStatus.ACTIVE })
+      .andWhere('route.code = :routeCode', { routeCode })
+      .andWhere('route.direction = :direction', { direction }) // Filter baru untuk GO / RETURN
+      .getMany();
+
+    // 5. Mapping Response
+    return sessions.map(session => {
+      // Menyortir lokasi berdasarkan ID terbesar untuk memastikan data paling baru berada di indeks pertama
+      const sortedLocations = session.locations && session.locations.length > 0
+        ? [...session.locations].sort((a, b) => Number(b.id) - Number(a.id))
+        : [];
+
+      return {
+        id: session.id,
+        status: session.status,
+        isAtStop: session.isAtStop,
+        currentSequence: session.currentSequence,
+        nextSequence: session.nextSequence,
+        startedAt: session.startedAt,
+        trip: {
+          id: session.trip.id,
+          tripNumber: session.trip.tripNumber,
+          plannedDeparture: session.trip.plannedDeparture,
+          plannedArrival: session.trip.plannedArrival,
+        },
+        route: {
+          id: session.trip.route.id,
+          code: session.trip.route.code,
+          name: session.trip.route.name,
+          direction: session.trip.route.direction,
+          color: session.trip.route.color,
+        },
+        driver: session.trip.schedule?.driver ? {
+          id: session.trip.schedule.driver.id,
+          name: session.trip.schedule.driver.name,
+        } : null,
+        vehicle: session.trip.schedule?.vehicle ? {
+          id: session.trip.schedule.vehicle.id,
+          plateNumber: session.trip.schedule.vehicle.plateNumber,
+          capacity: session.trip.schedule.vehicle.capacity,
+        } : null,
+        currentStop: session.currentStop,
+        nextStop: session.nextStop,
+        latestLocation: sortedLocations[0] || null,
+      };
+    });
+  }
 
 }
 
