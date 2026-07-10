@@ -225,5 +225,58 @@ export class LiveSessionsService {
 
     return await this.sessionRepository.save(session);
   }
+
+  async getActiveAngkotByCode(routeCode: string) {
+  const sessions = await this.sessionRepository.createQueryBuilder('session')
+    // 1. Join ke Trip dan Route
+    .innerJoinAndSelect('session.trip', 'trip')
+    .innerJoinAndSelect('trip.route', 'route')
+    
+    // 2. Join ke Schedule untuk mendapatkan Driver dan Vehicle
+    .innerJoinAndSelect('trip.schedule', 'schedule')
+    .leftJoinAndSelect('schedule.driver', 'driver')   // Asumsi nama relasi di Schedule adalah 'driver'
+    .leftJoinAndSelect('schedule.vehicle', 'vehicle') // Asumsi nama relasi di Schedule adalah 'vehicle'
+    
+    // 3. Join Halte & Lokasi
+    .leftJoinAndSelect('session.currentStop', 'currentStop')
+    .leftJoinAndSelect('session.nextStop', 'nextStop')
+    .leftJoinAndSelect('session.locations', 'location')
+    
+    // 4. Filter & Sorting
+    .where('session.status = :status', { status: SessionStatus.ACTIVE })
+    .andWhere('route.code = :routeCode', { routeCode })
+    .orderBy('location.id', 'DESC')
+    .getMany();
+
+  // 5. Mapping Response agar bersih dan rapi
+  return sessions.map(session => ({
+    id: session.id,
+    status: session.status,
+    isAtStop: session.isAtStop,
+    currentSequence: session.currentSequence,
+    nextSequence: session.nextSequence,
+    startedAt: session.startedAt,
+    route: {
+      code: session.trip.route.code,
+      name: session.trip.route.name,
+      direction: session.trip.route.direction,
+    },
+    // Menampilkan data driver dan kendaraan yang sedang jalan
+    driver: session.trip.schedule?.driver ? {
+      id: session.trip.schedule.driver.id,
+      name: session.trip.schedule.driver.name,
+    } : null,
+    vehicle: session.trip.schedule?.vehicle ? {
+      id: session.trip.schedule.vehicle.id,
+      plateNumber: session.trip.schedule.vehicle.plateNumber, // Contoh: N 1234 AB
+      capacity: session.trip.schedule.vehicle.capacity,
+    } : null,
+    currentStop: session.currentStop,
+    nextStop: session.nextStop,
+    latestLocation: session.locations[0] || null, 
+  }));
+}
+
+
 }
 

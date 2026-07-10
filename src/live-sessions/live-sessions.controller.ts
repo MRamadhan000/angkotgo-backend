@@ -1,5 +1,5 @@
 // live-sessions.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, Query, BadRequestException } from '@nestjs/common';
 import { LiveSessionsService } from './live-sessions.service';
 import { CreateLiveSessionDto } from './dto/create-live-session.dto';
 import { AddLiveLocationDto } from './dto/add-live-location.dto';
@@ -17,16 +17,34 @@ export class LiveSessionsController {
     return await this.liveSessionsService.findAll();
   }
 
-  // 2. POST /live-sessions (Mulai Sesi Driver Baru - Sudah include validasi trip ganda)
-  @Post()
-  async startSession(@Body() createLiveSessionDto: CreateLiveSessionDto) {
-    return await this.liveSessionsService.create(createLiveSessionDto);
+  // NEW: GET /live-sessions/active/by-code (Melihat semua angkot aktif berdasarkan kode rute)
+  // Catatan: Ditaruh di atas :id agar tidak bentrok (routing precedence)
+  @Get('active/by-code')
+  async getActiveAngkotByCode(@Query('code') routeCode: string) {
+    if (!routeCode) {
+      throw new BadRequestException('Query parameter "code" (kode angkot) wajib diisi');
+    }
+    
+    const activeAngkot = await this.liveSessionsService.getActiveAngkotByCode(routeCode);
+    
+    return {
+      success: true,
+      message: `Berhasil mendapatkan data live angkot rute ${routeCode.toUpperCase()}`,
+      count: activeAngkot.length,
+      data: activeAngkot,
+    };
   }
 
   // 3. GET /live-sessions/:id (Melihat rute tracking maps beserta array koordinatnya)
   @Get(':id')
   async getSessionWithTracking(@Param('id', ParseIntPipe) id: number) {
     return await this.liveSessionsService.getSessionWithTracking(id);
+  }
+
+  // 2. POST /live-sessions (Mulai Sesi Driver Baru - Sudah include validasi trip ganda)
+  @Post()
+  async startSession(@Body() createLiveSessionDto: CreateLiveSessionDto) {
+    return await this.liveSessionsService.create(createLiveSessionDto);
   }
 
   // 4. PATCH /live-sessions/:id (Update umum data sesi)
