@@ -1,5 +1,5 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DriversModule } from './drivers/drivers.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
@@ -11,17 +11,24 @@ import { PassengersModule } from './passengers/passengers.module';
 
 @Module({
   imports: [
-    // Konfigurasi TypeORM untuk MySQL langsung tanpa .env
-    TypeOrmModule.forRoot({
-      type: 'postgres', 
-      host: 'localhost',          // Sesuai dengan nama service di docker-compose
-      port: 5433,
-      username: 'nest_user',     // Sesuai MYSQL_USER di docker-compose
-      password: 'nest_password', // Sesuai MYSQL_PASSWORD di docker-compose
-      database: 'nest_db',       // Sesuai MYSQL_DATABASE di docker-compose
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,         // Auto-sync schema, cocok untuk development
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
+
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>('DATABASE_URL'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, 
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }),
+    }),
+
     DriversModule,
     VehiclesModule,
     RoutesModule,
