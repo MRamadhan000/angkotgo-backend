@@ -2,27 +2,26 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Driver, DriverStatus } from './entities/driver.entity';
 import { CreateDriverDto } from './dto/create-driver.dto';
 import { UpdateDriverDto } from './dto/update-driver.dto';
-import { start } from 'repl';
 
 @Injectable()
 export class DriversService {
   constructor(
     @InjectRepository(Driver)
     private readonly driverRepository: Repository<Driver>,
-  ) {}
+  ) { }
 
-  // Get All Drivers
   async findAll(): Promise<Driver[]> {
     return await this.driverRepository.find();
   }
 
-  // Get Driver by ID
   async findOne(id: number): Promise<Driver> {
     const driver = await this.driverRepository.findOne({
       where: { id },
@@ -35,21 +34,59 @@ export class DriversService {
     return driver;
   }
 
-  // Create a new Driver
   async create(createDriverDto: CreateDriverDto): Promise<Driver> {
     try {
-      const newDriver = this.driverRepository.create(createDriverDto);
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(createDriverDto.password, saltRounds);
+
+      const newDriver = this.driverRepository.create({
+        ...createDriverDto,
+        password: hashedPassword,
+      });
+
       return await this.driverRepository.save(newDriver);
     } catch (error: any) {
-      // Cast error ke tipe any atau objek spesifik saat pengecekan
       if (error.code === '23505') {
-        throw new ConflictException('Nomor HP atau Nomor SIM sudah terdaftar!');
+        const detail = error.detail || '';
+        if (detail.includes('nik')) {
+          throw new ConflictException('NIK sudah terdaftar!');
+        }
+        if (detail.includes('email')) {
+          throw new ConflictException('Email sudah terdaftar!');
+        }
+        if (detail.includes('phone')) {
+          throw new ConflictException('Nomor HP sudah terdaftar!');
+        }
+        if (detail.includes('license_number')) {
+          throw new ConflictException('Nomor SIM sudah terdaftar!');
+        }
+        throw new ConflictException('Data unik sudah terdaftar di sistem!');
       }
       throw error;
     }
   }
 
-  // Update Driver by ID
+  async login(email: string, pass: string): Promise<Driver> {
+    const driver = await this.driverRepository.findOne({
+      where: { email },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Email tidak terdaftar');
+    }
+
+    const isPasswordValid = await bcrypt.compare(pass, driver.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Password salah');
+    }
+
+    if (driver.status === DriverStatus.SUSPENDED) {
+      throw new ConflictException('Akun driver sedang ditangguhkan (suspended)');
+    }
+
+    return driver;
+  }
+
   async update(id: number, input: UpdateDriverDto): Promise<Driver> {
     const driver = await this.driverRepository.findOne({
       where: { id },
@@ -61,13 +98,16 @@ export class DriversService {
 
     await this.ensureUniqueDriver(input, driver);
 
+    if (input.password) {
+      input.password = await bcrypt.hash(input.password, 10);
+    }
+
     Object.assign(driver, input);
 
     return await this.driverRepository.save(driver);
   }
 
-  // Deactivate Driver by ID
-  async deactivate(id: number): Promise<Driver> {
+  async updateStatus(id: number, status: DriverStatus): Promise<Driver> {
     const driver = await this.driverRepository.findOne({
       where: { id },
     });
@@ -76,11 +116,10 @@ export class DriversService {
       throw new NotFoundException('Driver not found');
     }
 
-    driver.status = DriverStatus.INACTIVE;
+    driver.status = status;
     return await this.driverRepository.save(driver);
   }
 
-  // Ensure unique phone and license number
   async ensureUniqueDriver(
     input: UpdateDriverDto,
     driver: Driver,
@@ -104,23 +143,31 @@ export class DriversService {
         throw new ConflictException('License number already exists');
       }
     }
+
+    if (input.email && (input as any).email !== driver.email) {
+      const exists = await this.driverRepository.findOne({
+        where: { email: (input as any).email },
+      });
+
+      if (exists) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
     return driver;
   }
 
-  // Login Driver
-  async login(phone: string): Promise<Driver> {
+  async deactivate(id: number): Promise<Driver> {
     const driver = await this.driverRepository.findOne({
-      where: { phone },
+      where: { id },
     });
 
     if (!driver) {
-      throw new NotFoundException('Nomor HP tidak terdaftar');
+      throw new NotFoundException('Driver not found');
     }
 
-    if (driver.status === DriverStatus.INACTIVE) {
-      throw new ConflictException('Status driver tidak aktif');
-    }
-
-    return driver;
+    driver.status = DriverStatus.OFF_DUTY;
+    return await this.driverRepository.save(driver);
   }
+
 }

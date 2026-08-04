@@ -13,7 +13,7 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
 
-  // Aktifkan validasi global di sini
+  // Aktifkan validasapi global di sini
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // Otomatis menghapus properti yang tidak ada di DTO
