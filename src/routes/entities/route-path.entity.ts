@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { DirectionType } from '../enums/route.enum';
 
-@Entity('route_stops')
-export class RouteStop {
+@Entity('route_paths')
+export class RoutePath {
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -14,9 +14,6 @@ export class RouteStop {
         enum: DirectionType,
     })
     direction!: DirectionType;
-
-    @Column({ type: 'varchar', length: 100, name: 'stop_name' })
-    stopName!: string; // Contoh: "Halte Dinoyo Permai"
 
     @Column({
         type: 'decimal', precision: 10, scale: 8, transformer: {
@@ -34,6 +31,6 @@ export class RouteStop {
     })
     longitude!: number;
 
-    @Column({ type: 'int', name: 'stop_order' })
-    stopOrder!: number; // Urutan halte ke-1, ke-2, dst.
+    @Column({ type: 'int', name: 'sequence_order' })
+    sequenceOrder!: number; // Urutan titik koordinat agar garis jalurnya tidak acak-acakan
 }

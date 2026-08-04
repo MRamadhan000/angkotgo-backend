@@ -1,124 +1,77 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RouteStop } from '../entities/route-stop.entity';
 import { Route } from '../entities/route.entity';
-import { CreateRouteStopDto } from '../dto/create-route.dto';
-import { UpdateRouteStopDto } from '../dto/update-route.dto';
+import { CreateRouteStopDto } from '../dto/create/create-route-stop.dto';
+import { UpdateRouteStopDto } from '../dto/update/update-route-stop.dto';
 
 @Injectable()
 export class RouteStopsService {
   constructor(
     @InjectRepository(RouteStop)
     private readonly routeStopRepository: Repository<RouteStop>,
-
     @InjectRepository(Route)
     private readonly routeRepository: Repository<Route>,
   ) {}
 
-  // 1. Menambahkan Halte Baru ke Rute Tertentu
-  async create(
-    routeId: number,
-    createRouteStopDto: CreateRouteStopDto,
-  ): Promise<RouteStop> {
-    // Pastikan Rute utama eksis di database
+  async create(createRouteStopDto: CreateRouteStopDto): Promise<RouteStop> {
+    // Pastikan ID trayek (routeId) benar-benar ada di database
     const route = await this.routeRepository.findOne({
-      where: { id: routeId },
+      where: { id: createRouteStopDto.routeId },
     });
+
     if (!route) {
-      throw new NotFoundException(`Rute dengan ID ${routeId} tidak ditemukan`);
+      throw new NotFoundException(`Trayek dengan ID ${createRouteStopDto.routeId} tidak ditemukan.`);
     }
 
-    // Buat instance halte baru dan kaitkan relasinya
-    const newStop = this.routeStopRepository.create({
-      ...createRouteStopDto,
-      route: route,
-    });
-
+    const newStop = this.routeStopRepository.create(createRouteStopDto);
     return await this.routeStopRepository.save(newStop);
   }
 
-  // 2. Mengambil Semua Daftar Halte Milik Rute Tertentu (Berdasarkan Route ID)
-  async findByRoute(routeId: number): Promise<RouteStop[]> {
-    const route = await this.routeRepository.findOne({
-      where: { id: routeId },
-    });
+  async findByRouteAndDirection(routeId: number, direction: string): Promise<RouteStop[]> {
+    // Validasi apakah trayeknya ada
+    const route = await this.routeRepository.findOne({ where: { id: routeId } });
     if (!route) {
-      throw new NotFoundException(`Rute dengan ID ${routeId} tidak ditemukan`);
+      throw new NotFoundException(`Trayek dengan ID ${routeId} tidak ditemukan.`);
     }
 
     return await this.routeStopRepository.find({
-      where: { route: { id: routeId } },
-      order: { sequence: 'ASC' }, // Urutkan berdasarkan urutan singgah halte
+      where: { routeId, direction: direction as any },
+      order: { stopOrder: 'ASC' }, // Urutkan halte dari urutan ke-1 sampai akhir
     });
   }
 
-  async createBulk(
-    routeId: number,
-    createRouteStopDtos: CreateRouteStopDto[],
-  ): Promise<RouteStop[]> {
-    // 1. Pastikan Rute utamanya eksis
-    const route = await this.routeRepository.findOne({
-      where: { id: routeId },
-    });
-    if (!route) {
-      throw new NotFoundException(`Rute dengan ID ${routeId} tidak ditemukan`);
+  async findOne(id: number): Promise<RouteStop> {
+    const routeStop = await this.routeStopRepository.findOne({ where: { id } });
+
+    if (!routeStop) {
+      throw new NotFoundException(`Halte dengan ID ${id} tidak ditemukan.`);
     }
 
-    // 2. Map array DTO menjadi array entity yang terikat dengan routeId tersebut
-    const newStops = createRouteStopDtos.map((dto) => {
-      return this.routeStopRepository.create({
-        ...dto,
-        route: route, // Hubungkan ke relasi route
-      });
-    });
-
-    // 3. Simpan massal ke database
-    return await this.routeStopRepository.save(newStops);
+    return routeStop;
   }
 
-  // Mengupdate Satu Halte Berdasarkan ID Halte
-    async update(id: number, input: UpdateRouteStopDto): Promise<RouteStop> {
-      const routeStop = await this.routeStopRepository.findOne({
-        where: { id },
-      });
-  
-      if (!routeStop) {
-        throw new NotFoundException('Route Stop not found');
+  async update(id: number, updateRouteStopDto: UpdateRouteStopDto): Promise<RouteStop> {
+    const routeStop = await this.findOne(id); // Pastikan halte yang mau di-update ada
+
+    // Jika routeId ikut diubah, pastikan route baru tersebut ada di database
+    if (updateRouteStopDto.routeId && updateRouteStopDto.routeId !== routeStop.routeId) {
+      const route = await this.routeRepository.findOne({ where: { id: updateRouteStopDto.routeId } });
+      if (!route) {
+        throw new NotFoundException(`Trayek dengan ID ${updateRouteStopDto.routeId} tidak ditemukan.`);
       }
-      await this.ensureUniqueRouteStop(input, routeStop);
-  
-      Object.assign(routeStop, input); // Gabungkan data lama dengan data baru yang masuk
-  
-      return await this.routeStopRepository.save(routeStop);
     }
 
-  // 3. Menghapus Satu Halte Satuan Berdasarkan ID Halte
+    Object.assign(routeStop, updateRouteStopDto);
+    return await this.routeStopRepository.save(routeStop);
+  }
+
+  // 5. DELETE: Menghapus satu halte berdasarkan ID
   async remove(id: number): Promise<{ message: string }> {
-    const stop = await this.routeStopRepository.findOne({ where: { id } });
-    if (!stop) {
-      throw new NotFoundException(`Halte dengan ID ${id} tidak ditemukan`);
-    }
+    const routeStop = await this.findOne(id); // Pastikan ada sebelum dihapus
 
-    await this.routeStopRepository.remove(stop);
+    await this.routeStopRepository.remove(routeStop);
     return { message: `Halte dengan ID ${id} berhasil dihapus.` };
   }
-
-  // Validasi Unikasi Halte Berdasarkan Sequence
-  async ensureUniqueRouteStop(
-      input: UpdateRouteStopDto,
-      routeStop: RouteStop,
-    ): Promise<RouteStop> {
-      if (input.sequence !== routeStop.sequence) {
-        const exists = await this.routeRepository.findOne({
-          where: { code: input.sequence.toString() }, // Asumsikan sequence sebagai kode unik untuk contoh ini
-        });
-  
-        if (exists) {
-          throw new ConflictException('Route code already exists');
-        }
-      }
-  
-      return routeStop;
-    }
 }

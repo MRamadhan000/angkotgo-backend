@@ -3,46 +3,68 @@ import {
   Get,
   Post,
   Body,
+  Patch,
   Param,
   Delete,
   ParseIntPipe,
-  Patch,
+  HttpCode,
+  HttpStatus
 } from '@nestjs/common';
-import { RoutesService } from '../services/routes.service';
-import { CreateRouteDto } from '../dto/create-route.dto';
+import { CreateRouteDto } from '../dto/create/create-route.dto';
+import { UpdateRouteDto } from '../dto/update/update-route.dto';
 import { Route } from '../entities/route.entity';
+import { RoutesService } from '../services/routes.service';
 
 @Controller('routes')
 export class RoutesController {
-  constructor(private readonly routesService: RoutesService) {}
+  constructor(private readonly routesService: RoutesService) { }
 
   @Post()
-  async create(@Body() createRouteDto: CreateRouteDto): Promise<Route> {
-    return await this.routesService.create(createRouteDto);
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createRouteDto: CreateRouteDto): Promise<{ message: string; data: Route }> {
+    const data = await this.routesService.create(createRouteDto);
+    return {
+      message: 'Trayek baru berhasil ditambahkan.',
+      data,
+    };
   }
 
   @Get()
-  async findAll(): Promise<Route[]> {
-    return await this.routesService.findAll();
+  @HttpCode(HttpStatus.OK)
+  async findAll(): Promise<{ message: string; data: Route[] }> {
+    const data = await this.routesService.findAll();
+    return {
+      message: 'Berhasil mengambil seluruh data trayek.',
+      data,
+    };
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Route> {
-    return await this.routesService.findOne(id);
+  @HttpCode(HttpStatus.OK)
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<{ message: string; data: Route }> {
+    const data = await this.routesService.findOne(id);
+    return {
+      message: `Berhasil mengambil detail trayek dengan ID ${id}.`,
+      data,
+    };
   }
 
   @Patch(':id')
+  @HttpCode(HttpStatus.OK)
   async update(
-    @Param('id') id: number,
-    @Body() updateRouteDto: any, // sementara di-set any atau sesuaikan dengan UpdateRouteDto bawaan CLI
-  ) {
-    return this.routesService.update(id, updateRouteDto);
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRouteDto: UpdateRouteDto
+  ): Promise<{ message: string; data: Route }> {
+    const data = await this.routesService.update(id, updateRouteDto);
+    return {
+      message: `Trayek dengan ID ${id} berhasil diperbarui.`,
+      data,
+    };
   }
 
   @Delete(':id')
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<{ message: string }> {
+  @HttpCode(HttpStatus.OK)
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
     return await this.routesService.remove(id);
   }
 }
