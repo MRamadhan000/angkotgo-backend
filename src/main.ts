@@ -1,28 +1,34 @@
-// src/main.ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*', // Mengizinkan semua domain/file lokal mengakses API ini
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Aktifkan validasapi global di sini
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Otomatis menghapus properti yang tidak ada di DTO
-      forbidNonWhitelisted: true, // lapor error jika client mengirim properti asing
-      transform: true, // Otomatis mengubah tipe data request sesuai tipe data di DTO
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  await app.listen(3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const port = process.env.PORT || 3000;
+
+  await app.listen(port);
+
+  console.log(`🚀 Server running on http://localhost:${port}`);
 }
+
 bootstrap();

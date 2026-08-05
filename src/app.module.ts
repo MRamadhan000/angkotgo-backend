@@ -1,36 +1,49 @@
-import { Module, Logger } from '@nestjs/common';
+import {
+  Module,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+
 import { DriversModule } from './drivers/drivers.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { RoutesModule } from './routes/routes.module';
-import { SchedulesModule } from './schedules/schedules.module';
-import { TripsModule } from './trips/trips.module';
-// import { LiveSessionsModule } from './live-sessions/live-sessions.module';
-// import { PassengersModule } from './passengers/passengers.module';
 import { ConductorsModule } from './conductors/conductors.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
-        const isDev = nodeEnv === 'development';
 
+      useFactory: (configService: ConfigService) => {
+        const isDev =
+          configService.get<string>('NODE_ENV') !== 'production';
         return {
           type: 'postgres',
           url: configService.get<string>('DATABASE_URL'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          autoLoadEntities: true,
           synchronize: isDev,
-          ssl: {
-            rejectUnauthorized: false,
+          ssl: isDev
+            ? false
+            : {
+              rejectUnauthorized: false,
+            },
+          retryAttempts: 5,
+          retryDelay: 3000,
+          logging: isDev,
+          extra: {
+            max: 10,
+            min: 2,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 5000,
           },
         };
       },
@@ -39,20 +52,27 @@ import { ConductorsModule } from './conductors/conductors.module';
     DriversModule,
     VehiclesModule,
     RoutesModule,
-    SchedulesModule,
-    TripsModule,
     ConductorsModule,
-    // LiveSessionsModule,
-    // PassengersModule,
   ],
 })
-export class AppModule {
-  private readonly logger = new Logger('DatabaseConnection');
-  constructor(private dataSource: DataSource) {
-    if (this.dataSource.isInitialized) {
-      this.logger.log('🚀 Berhasil terhubung ke database Supabase!');
-    } else {
-      this.logger.error('❌ Gagal terhubung ke database Supabase.');
+export class AppModule implements OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
+  constructor(private readonly dataSource: DataSource) { }
+
+  async onModuleInit() {
+    try {
+      if (this.dataSource.isInitialized) {
+        await this.dataSource.query('SELECT 1');
+
+        this.logger.log(
+          '✅ Connected to PostgreSQL (Supabase)',
+        );
+      }
+    } catch (err) {
+      this.logger.error(
+        '❌ Failed to connect to PostgreSQL',
+        err,
+      );
     }
   }
 }
