@@ -66,19 +66,7 @@ export class ConductorsService {
   }
 
   async findAll(): Promise<Conductor[]> {
-    return await this.conductorRepository.find({
-      select: {
-        id: true,
-        name: true,
-        nik: true,
-        email: true,
-        phone: true,
-        address: true,
-        status: true,
-        totalTrips: true,
-        createdAt: true,
-      },
-    });
+    return await this.conductorRepository.find();
   }
 
   async findOne(id: number): Promise<Conductor> {
