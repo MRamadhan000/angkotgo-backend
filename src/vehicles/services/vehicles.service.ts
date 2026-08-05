@@ -50,6 +50,6 @@ export class VehiclesService {
   async remove(id: number): Promise<{ message: string }> {
     const vehicle = await this.findOne(id);
     await this.vehicleRepository.remove(vehicle);
-    return { message: `Kendaraan dengan ID ${id} berhasil dihapus.` };
+    return { message: `Kendaraan dengan ID ${id} berhasil dihapus` };
   }
 }
