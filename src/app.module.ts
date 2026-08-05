@@ -9,6 +9,7 @@ import { SchedulesModule } from './schedules/schedules.module';
 import { TripsModule } from './trips/trips.module';
 // import { LiveSessionsModule } from './live-sessions/live-sessions.module';
 // import { PassengersModule } from './passengers/passengers.module';
+import { ConductorsModule } from './conductors/conductors.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { TripsModule } from './trips/trips.module';
     RoutesModule,
     SchedulesModule,
     TripsModule,
+    ConductorsModule,
     // LiveSessionsModule,
     // PassengersModule,
   ],
