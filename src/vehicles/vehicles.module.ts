@@ -12,6 +12,9 @@ import { VehicleAssignmentsService } from './services/vehicle-assignments.servic
 import { Driver } from 'src/drivers/entities/driver.entity';
 import { Conductor } from 'src/conductors/entities/conductor.entity';
 import { Route } from 'src/routes/entities/route.entity';
+import { VehicleLocation } from './entities/vehicle-location.entity';
+import { VehicleLocationsController } from './controllers/vehicle-locations.controller';
+import { VehicleLocationsService } from './services/vehicle-locations.service';
 
 @Module({
   imports: [
@@ -19,6 +22,7 @@ import { Route } from 'src/routes/entities/route.entity';
       Vehicle, 
       VehicleAssignment, 
       VehicleService,
+      VehicleLocation,
       Driver,
       Conductor,
       Route,
@@ -27,16 +31,19 @@ import { Route } from 'src/routes/entities/route.entity';
   controllers: [
     VehiclesController,
     VehicleAssignmentsController,
+    VehicleLocationsController,
     VehicleServicesController,
   ],
   providers: [
     VehiclesService,
     VehicleAssignmentsService,
+    VehicleLocationsService,
     VehicleServicesService,
   ],
   exports: [
     VehiclesService,
     VehicleAssignmentsService,
+    VehicleLocationsService,
     VehicleServicesService,
   ],
 })
