@@ -8,70 +8,84 @@ import { UpdateRouteStopDto } from '../dto/update/update-route-stop.dto';
 
 @Injectable()
 export class RouteStopsService {
-  constructor(
-    @InjectRepository(RouteStop)
-    private readonly routeStopRepository: Repository<RouteStop>,
-    @InjectRepository(Route)
-    private readonly routeRepository: Repository<Route>,
-  ) {}
+    constructor(
+        @InjectRepository(RouteStop)
+        private readonly routeStopRepository: Repository<RouteStop>,
+        @InjectRepository(Route)
+        private readonly routeRepository: Repository<Route>,
+    ) { }
 
-  async create(createRouteStopDto: CreateRouteStopDto): Promise<RouteStop> {
-    // Pastikan ID trayek (routeId) benar-benar ada di database
-    const route = await this.routeRepository.findOne({
-      where: { id: createRouteStopDto.routeId },
-    });
+    async create(createRouteStopDto: CreateRouteStopDto): Promise<RouteStop> {
+        const route = await this.routeRepository.findOne({
+            where: { id: createRouteStopDto.routeId },
+        });
 
-    if (!route) {
-      throw new NotFoundException(`Trayek dengan ID ${createRouteStopDto.routeId} tidak ditemukan.`);
+        if (!route) {
+            throw new NotFoundException(`Trayek dengan ID ${createRouteStopDto.routeId} tidak ditemukan.`);
+        }
+
+        const newStop = this.routeStopRepository.create(createRouteStopDto);
+        return await this.routeStopRepository.save(newStop);
     }
 
-    const newStop = this.routeStopRepository.create(createRouteStopDto);
-    return await this.routeStopRepository.save(newStop);
-  }
+    async createBulk(createRouteStopsDto: CreateRouteStopDto[]): Promise<RouteStop[]> {
+        if (!createRouteStopsDto || createRouteStopsDto.length === 0) {
+            throw new NotFoundException('Data halte tidak boleh kosong.');
+        }
 
-  async findByRouteAndDirection(routeId: number, direction: string): Promise<RouteStop[]> {
-    // Validasi apakah trayeknya ada
-    const route = await this.routeRepository.findOne({ where: { id: routeId } });
-    if (!route) {
-      throw new NotFoundException(`Trayek dengan ID ${routeId} tidak ditemukan.`);
+        const routeId = createRouteStopsDto[0].routeId;
+        const route = await this.routeRepository.findOne({
+            where: { id: routeId },
+        });
+
+        if (!route) {
+            throw new NotFoundException(`Trayek dengan ID ${routeId} tidak ditemukan.`);
+        }
+
+        const newStops = this.routeStopRepository.create(createRouteStopsDto);
+        return await this.routeStopRepository.save(newStops);
     }
 
-    return await this.routeStopRepository.find({
-      where: { routeId, direction: direction as any },
-      order: { stopOrder: 'ASC' }, // Urutkan halte dari urutan ke-1 sampai akhir
-    });
-  }
+    async findByRouteAndDirection(routeId: number, direction: string): Promise<RouteStop[]> {
+        const route = await this.routeRepository.findOne({ where: { id: routeId } });
+        if (!route) {
+            throw new NotFoundException(`Trayek dengan ID ${routeId} tidak ditemukan.`);
+        }
 
-  async findOne(id: number): Promise<RouteStop> {
-    const routeStop = await this.routeStopRepository.findOne({ where: { id } });
-
-    if (!routeStop) {
-      throw new NotFoundException(`Halte dengan ID ${id} tidak ditemukan.`);
+        return await this.routeStopRepository.find({
+            where: { routeId, direction: direction as any },
+            order: { stopOrder: 'ASC' }, // Urutkan halte dari urutan ke-1 sampai akhir
+        });
     }
 
-    return routeStop;
-  }
+    async findOne(id: number): Promise<RouteStop> {
+        const routeStop = await this.routeStopRepository.findOne({ where: { id } });
 
-  async update(id: number, updateRouteStopDto: UpdateRouteStopDto): Promise<RouteStop> {
-    const routeStop = await this.findOne(id); // Pastikan halte yang mau di-update ada
+        if (!routeStop) {
+            throw new NotFoundException(`Halte dengan ID ${id} tidak ditemukan.`);
+        }
 
-    // Jika routeId ikut diubah, pastikan route baru tersebut ada di database
-    if (updateRouteStopDto.routeId && updateRouteStopDto.routeId !== routeStop.routeId) {
-      const route = await this.routeRepository.findOne({ where: { id: updateRouteStopDto.routeId } });
-      if (!route) {
-        throw new NotFoundException(`Trayek dengan ID ${updateRouteStopDto.routeId} tidak ditemukan.`);
-      }
+        return routeStop;
     }
 
-    Object.assign(routeStop, updateRouteStopDto);
-    return await this.routeStopRepository.save(routeStop);
-  }
+    async update(id: number, updateRouteStopDto: UpdateRouteStopDto): Promise<RouteStop> {
+        const routeStop = await this.findOne(id);
 
-  // 5. DELETE: Menghapus satu halte berdasarkan ID
-  async remove(id: number): Promise<{ message: string }> {
-    const routeStop = await this.findOne(id); // Pastikan ada sebelum dihapus
+        if (updateRouteStopDto.routeId && updateRouteStopDto.routeId !== routeStop.routeId) {
+            const route = await this.routeRepository.findOne({ where: { id: updateRouteStopDto.routeId } });
+            if (!route) {
+                throw new NotFoundException(`Trayek dengan ID ${updateRouteStopDto.routeId} tidak ditemukan.`);
+            }
+        }
 
-    await this.routeStopRepository.remove(routeStop);
-    return { message: `Halte dengan ID ${id} berhasil dihapus.` };
-  }
+        Object.assign(routeStop, updateRouteStopDto);
+        return await this.routeStopRepository.save(routeStop);
+    }
+
+    async remove(id: number): Promise<{ message: string }> {
+        const routeStop = await this.findOne(id);
+
+        await this.routeStopRepository.remove(routeStop);
+        return { message: `Halte dengan ID ${id} berhasil dihapus.` };
+    }
 }

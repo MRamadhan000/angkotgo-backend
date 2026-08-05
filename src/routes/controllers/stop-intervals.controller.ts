@@ -1,15 +1,15 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
-  Query, 
-  ParseIntPipe, 
-  HttpCode, 
-  HttpStatus 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus
 } from '@nestjs/common';
 import { StopIntervalsService } from '../services/stop-intervals.service';
 import { StopInterval } from '../entities/stop-interval.entity';
@@ -18,9 +18,8 @@ import { UpdateStopIntervalDto } from '../dto/update/update-stop-interval.dto';
 
 @Controller('stop-intervals')
 export class StopIntervalsController {
-  constructor(private readonly stopIntervalsService: StopIntervalsService) {}
+  constructor(private readonly stopIntervalsService: StopIntervalsService) { }
 
-  // 1. CREATE: Menambahkan interval baru
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createStopIntervalDto: CreateStopIntervalDto): Promise<{ message: string; data: StopInterval }> {
@@ -31,8 +30,11 @@ export class StopIntervalsController {
     };
   }
 
-  // 2. READ: Mengambil daftar interval berdasarkan routeId dan direction
-  // Contoh URL: /stop-intervals?routeId=1&direction=FORWARD
+  @Post('bulk')
+  async createBulk(@Body() createStopIntervalDtos: CreateStopIntervalDto[]) {
+    return await this.stopIntervalsService.createBulk(createStopIntervalDtos);
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   async findByRouteAndDirection(
@@ -46,7 +48,6 @@ export class StopIntervalsController {
     };
   }
 
-  // 3. READ (ONE): Mengambil detail satu interval berdasarkan ID
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<{ message: string; data: StopInterval }> {
@@ -57,11 +58,10 @@ export class StopIntervalsController {
     };
   }
 
-  // 4. UPDATE: Memperbarui interval berdasarkan ID
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   async update(
-    @Param('id', ParseIntPipe) id: number, 
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateStopIntervalDto: UpdateStopIntervalDto
   ): Promise<{ message: string; data: StopInterval }> {
     const data = await this.stopIntervalsService.update(id, updateStopIntervalDto);
@@ -71,7 +71,6 @@ export class StopIntervalsController {
     };
   }
 
-  // 5. DELETE: Menghapus interval berdasarkan ID
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {

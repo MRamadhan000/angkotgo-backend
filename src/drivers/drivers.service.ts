@@ -80,6 +80,10 @@ export class DriversService {
       throw new UnauthorizedException('Password salah');
     }
 
+    if (!driver.isVerified) {
+      throw new UnauthorizedException('Akun driver belum diverifikasi');
+    }
+
     if (driver.status === DriverStatus.SUSPENDED) {
       throw new ConflictException('Akun driver sedang ditangguhkan (suspended)');
     }

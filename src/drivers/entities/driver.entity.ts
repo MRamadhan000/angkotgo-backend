@@ -47,9 +47,6 @@ export class Driver {
   @Column({ type: 'boolean', default: false, name: 'is_verified' })
   isVerified!: boolean;
 
-  @Column({ type: 'int', nullable: true, name: 'vehicle_id' })
-  vehicleId?: number;
-
   @Column({
     type: 'enum',
     enum: DriverStatus,

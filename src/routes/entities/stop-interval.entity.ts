@@ -26,7 +26,7 @@ export class StopInterval {
     @Column({ type: 'int', name: 'duration_in_seconds' })
     durationInSeconds!: number; // Estimasi durasi perjalanan (detik/menit)
 
-    @Column({ type: 'decimal', precision: 5, scale: 2, name: 'distance_in_meters' })
+    @Column({ type: 'decimal', precision: 8, scale: 2, name: 'distance_in_meters' })
     distanceInMeters!: number; // Jarak fisik antar halte
 
     // di dalam stop-interval.entity.ts

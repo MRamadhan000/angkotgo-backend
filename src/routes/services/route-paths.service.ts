@@ -28,7 +28,25 @@ export class RoutePathsService {
         return await this.routePathRepository.save(newPath);
     }
 
-    // 2. READ (BY ROUTE & DIRECTION): Mengambil seluruh titik koordinat berdasarkan Trayek dan Arahnya
+    async createBulk(createRoutePathsDto: CreateRoutePathDto[]): Promise<RoutePath[]> {
+        if (!createRoutePathsDto || createRoutePathsDto.length === 0) {
+            throw new NotFoundException('Data titik jalur tidak boleh kosong.');
+        }
+
+        // Ambil routeId dari data pertama untuk validasi keberadaan trayek
+        const routeId = createRoutePathsDto[0].routeId;
+        const route = await this.routeRepository.findOne({
+            where: { id: routeId },
+        });
+
+        if (!route) {
+            throw new NotFoundException(`Trayek dengan ID ${routeId} tidak ditemukan.`);
+        }
+
+        const newPaths = this.routePathRepository.create(createRoutePathsDto);
+        return await this.routePathRepository.save(newPaths);
+    }
+
     async findByRouteAndDirection(routeId: number, direction: string): Promise<RoutePath[]> {
         // Validasi apakah trayeknya ada
         const route = await this.routeRepository.findOne({ where: { id: routeId } });
@@ -42,7 +60,6 @@ export class RoutePathsService {
         });
     }
 
-    // 3. UPDATE: Memperbarui titik koordinat tertentu
     async update(id: number, updateRoutePathDto: UpdateRoutePathDto): Promise<RoutePath> {
         const routePath = await this.routePathRepository.findOne({ where: { id } });
 
@@ -50,7 +67,6 @@ export class RoutePathsService {
             throw new NotFoundException(`Titik koordinat jalur dengan ID ${id} tidak ditemukan.`);
         }
 
-        // Jika routeId ikut diubah, pastikan route baru tersebut ada
         if (updateRoutePathDto.routeId && updateRoutePathDto.routeId !== routePath.routeId) {
             const route = await this.routeRepository.findOne({ where: { id: updateRoutePathDto.routeId } });
             if (!route) {
@@ -62,7 +78,6 @@ export class RoutePathsService {
         return await this.routePathRepository.save(routePath);
     }
 
-    // 4. DELETE: Menghapus satu titik koordinat jalur
     async remove(id: number): Promise<{ message: string }> {
         const routePath = await this.routePathRepository.findOne({ where: { id } });
 

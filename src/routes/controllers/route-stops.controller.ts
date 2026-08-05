@@ -30,6 +30,15 @@ export class RouteStopsController {
         };
     }
 
+    @Post('bulk')
+    async createBulk(@Body() createRouteStopsDto: CreateRouteStopDto[]) {
+        const stops = await this.routeStopsService.createBulk(createRouteStopsDto);
+        return {
+            message: 'Multiple route stops successfully created',
+            data: stops,
+        };
+    }
+
     @Get()
     @HttpCode(HttpStatus.OK)
     async findByRouteAndDirection(

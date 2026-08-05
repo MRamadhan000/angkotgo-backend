@@ -30,6 +30,15 @@ export class RoutePathsController {
         };
     }
 
+    @Post('bulk')
+    async createBulk(@Body() createRoutePathsDto: CreateRoutePathDto[]) {
+        const paths = await this.routePathsService.createBulk(createRoutePathsDto);
+        return {
+            message: 'Multiple route paths successfully created',
+            data: paths,
+        };
+    }
+
     @Get()
     @HttpCode(HttpStatus.OK)
     async findByRouteAndDirection(

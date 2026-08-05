@@ -7,8 +7,8 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { RoutesModule } from './routes/routes.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TripsModule } from './trips/trips.module';
-import { LiveSessionsModule } from './live-sessions/live-sessions.module';
-import { PassengersModule } from './passengers/passengers.module';
+// import { LiveSessionsModule } from './live-sessions/live-sessions.module';
+// import { PassengersModule } from './passengers/passengers.module';
 
 @Module({
   imports: [
@@ -40,8 +40,8 @@ import { PassengersModule } from './passengers/passengers.module';
     RoutesModule,
     SchedulesModule,
     TripsModule,
-    LiveSessionsModule,
-    PassengersModule,
+    // LiveSessionsModule,
+    // PassengersModule,
   ],
 })
 export class AppModule {

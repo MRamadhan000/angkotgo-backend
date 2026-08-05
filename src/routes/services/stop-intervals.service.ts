@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { StopInterval } from '../entities/stop-interval.entity';
 import { Route } from '../entities/route.entity';
 import { RouteStop } from '../entities/route-stop.entity';
@@ -16,9 +16,9 @@ export class StopIntervalsService {
         private readonly routeRepository: Repository<Route>,
         @InjectRepository(RouteStop)
         private readonly routeStopRepository: Repository<RouteStop>,
+        private readonly dataSource: DataSource,
     ) { }
 
-    // 1. CREATE: Menambahkan data interval durasi antar halte
     async create(createStopIntervalDto: CreateStopIntervalDto): Promise<StopInterval> {
         const { routeId, fromStopId, toStopId } = createStopIntervalDto;
 
@@ -49,7 +49,50 @@ export class StopIntervalsService {
         return await this.stopIntervalRepository.save(newInterval);
     }
 
-    // 2. READ (BY ROUTE & DIRECTION): Mengambil daftar interval berdasarkan trayek dan arahnya
+    async createBulk(createStopIntervalDtos: CreateStopIntervalDto[]): Promise<StopInterval[]> {
+        if (!createStopIntervalDtos || createStopIntervalDtos.length === 0) {
+            throw new BadRequestException('Data bulk create tidak boleh kosong.');
+        }
+
+        return await this.dataSource.transaction(async (manager) => {
+            const savedIntervals: StopInterval[] = [];
+
+            for (let i = 0; i < createStopIntervalDtos.length; i++) {
+                const dto = createStopIntervalDtos[i];
+                const { routeId, fromStopId, toStopId } = dto;
+
+                // Validasi 1: Pastikan Trayek ada
+                const route = await manager.findOne(Route, { where: { id: routeId } });
+                if (!route) {
+                    throw new NotFoundException(`Index ke-${i}: Trayek dengan ID ${routeId} tidak ditemukan.`);
+                }
+
+                // Validasi 2: Pastikan Halte Asal ada
+                const fromStop = await manager.findOne(RouteStop, { where: { id: fromStopId } });
+                if (!fromStop) {
+                    throw new NotFoundException(`Index ke-${i}: Halte asal dengan ID ${fromStopId} tidak ditemukan.`);
+                }
+
+                // Validasi 3: Pastikan Halte Tujuan ada
+                const toStop = await manager.findOne(RouteStop, { where: { id: toStopId } });
+                if (!toStop) {
+                    throw new NotFoundException(`Index ke-${i}: Halte tujuan dengan ID ${toStopId} tidak ditemukan.`);
+                }
+
+                // Validasi tambahan: Halte asal dan tujuan tidak boleh sama
+                if (fromStopId === toStopId) {
+                    throw new BadRequestException(`Index ke-${i}: Halte asal dan halte tujuan tidak boleh sama.`);
+                }
+
+                const newInterval = manager.create(StopInterval, dto);
+                const saved = await manager.save(StopInterval, newInterval);
+                savedIntervals.push(saved);
+            }
+
+            return savedIntervals;
+        });
+    }
+
     async findByRouteAndDirection(routeId: number, direction: string): Promise<StopInterval[]> {
         const route = await this.routeRepository.findOne({ where: { id: routeId } });
         if (!route) {
@@ -76,6 +119,7 @@ export class StopIntervalsService {
 
         return stopInterval;
     }
+
     async update(id: number, updateStopIntervalDto: UpdateStopIntervalDto): Promise<StopInterval> {
         const stopInterval = await this.findOne(id);
 
