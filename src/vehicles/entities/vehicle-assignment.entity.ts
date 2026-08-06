@@ -47,6 +47,9 @@ export class VehicleAssignment {
     })
     direction!: DirectionType;
 
+    @Column({ type: 'int', default: 0, name: 'current_passengers' })
+    currentPassengers!: number;
+
     @Column({ type: 'date', name: 'assignment_date' })
     assignmentDate!: Date; // Tanggal penugasan (YYYY-MM-DD)
 
@@ -69,6 +72,7 @@ export class VehicleAssignment {
     @ManyToOne(() => Conductor, (conductor) => conductor.assignments, { onDelete: 'RESTRICT', nullable: true })
     @JoinColumn({ name: 'conductor_id' })
     conductor?: Conductor;
+
 
     @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
     createdAt!: Date;

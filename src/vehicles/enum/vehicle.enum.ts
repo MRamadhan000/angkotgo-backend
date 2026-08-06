@@ -21,3 +21,8 @@ export enum ServiceType {
   REPAIR = 'REPAIR',
   INSPECTION = 'INSPECTION',
 }
+
+export enum VehicleType {
+  PREMIUM = 'PREMIUM',
+  REGULER = 'REGULER',
+}

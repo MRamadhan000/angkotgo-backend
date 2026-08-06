@@ -1,14 +1,14 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  OneToMany, 
-  CreateDateColumn, 
-  UpdateDateColumn 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn
 } from 'typeorm';
 import { VehicleAssignment } from './vehicle-assignment.entity';
 import { VehicleService } from './vehicle-service.entity';
-import { VehicleStatus } from '../enum/vehicle.enum';
+import { VehicleStatus, VehicleType } from '../enum/vehicle.enum';
 
 @Entity('vehicles')
 export class Vehicle {
@@ -26,6 +26,13 @@ export class Vehicle {
 
   @Column({ type: 'int', default: 0, name: 'current_odometer' })
   currentOdometer!: number;
+
+  @Column({
+    type: 'enum',
+    enum: VehicleType,
+    default: VehicleType.REGULER,
+  })
+  type!: VehicleType;
 
   @Column({
     type: 'enum',
