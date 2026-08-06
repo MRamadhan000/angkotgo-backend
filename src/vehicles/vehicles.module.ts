@@ -16,6 +16,7 @@ import { VehicleLocation } from './entities/vehicle-location.entity';
 import { VehicleLocationsController } from './controllers/vehicle-locations.controller';
 import { VehicleLocationsService } from './services/vehicle-locations.service';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
+import { StopInterval } from 'src/routes/entities/stop-interval.entity';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RouteStop } from 'src/routes/entities/route-stop.entity';
       Conductor,
       Route,
       RouteStop,
+      StopInterval,
     ])
   ],
   controllers: [

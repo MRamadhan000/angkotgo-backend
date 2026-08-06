@@ -8,6 +8,8 @@ import { CreateVehicleAssignmentDto } from '../dto/create/create-vehicle-assignm
 import { UpdateVehicleAssignmentDto } from '../dto/update/update-vehicle-assignment.dto';
 import { VehicleAssignment } from '../entities/vehicle-assignment.entity';
 import { Vehicle } from '../entities/vehicle.entity';
+import { RouteStop } from 'src/routes/entities/route-stop.entity';
+import { StopInterval } from 'src/routes/entities/stop-interval.entity';
 
 @Injectable()
 export class VehicleAssignmentsService {
@@ -22,7 +24,10 @@ export class VehicleAssignmentsService {
         private readonly conductorRepository: Repository<Conductor>,
         @InjectRepository(Route)
         private readonly routeRepository: Repository<Route>,
-    ) { }
+        @InjectRepository(RouteStop)
+        private readonly routeStopRepository: Repository<RouteStop>,
+        @InjectRepository(StopInterval)
+        private readonly stopIntervalRepository: Repository<StopInterval>,) { }
 
     async create(createDto: CreateVehicleAssignmentDto): Promise<VehicleAssignment> {
         const vehicle = await this.vehicleRepository.findOne({ where: { id: createDto.vehicleId } });
@@ -155,5 +160,105 @@ export class VehicleAssignmentsService {
         const assignment = await this.findOne(id);
         await this.assignmentRepository.remove(assignment);
         return { message: `Penugasan dengan ID ${id} berhasil dihapus.` };
+    }
+
+    async getAllDriversScheduleWithEstimatedArrival(targetDate: string) {
+        // 1. Ambil semua assignment driver berdasarkan tanggal tertentu
+        const assignments = await this.assignmentRepository.find({
+            where: {
+                assignmentDate: new Date(targetDate) as any,
+            },
+            relations: {
+                route: true,
+                driver: true,
+                vehicle: true,
+            },
+        });
+
+        if (!assignments || assignments.length === 0) {
+            throw new NotFoundException(`Tidak ada jadwal penugasan kendaraan pada tanggal ${targetDate}`);
+        }
+
+        // 2. Proses tiap assignment menggunakan mapping secara paralel
+        const result = await Promise.all(
+            assignments.map(async (assignment) => {
+                // Ambil halte untuk rute & arah penugasan ini
+                const stops = await this.routeStopRepository.find({
+                    where: {
+                        routeId: assignment.routeId,
+                        direction: assignment.direction,
+                    },
+                    order: { stopOrder: 'ASC' },
+                });
+
+                // Ambil data interval antar halte
+                const intervals = await this.stopIntervalRepository.find({
+                    where: {
+                        routeId: assignment.routeId,
+                        direction: assignment.direction,
+                    },
+                });
+
+                const intervalMap = new Map<string, number>();
+                intervals.forEach((inv) => {
+                    intervalMap.set(`${inv.fromStopId}-${inv.toStopId}`, inv.durationInSeconds);
+                });
+
+                // Kalkulasi estimasi waktu tiba
+                const baseDateString = `${targetDate}T${assignment.startTime}`;
+                let cumulativeTimeMs = new Date(baseDateString).getTime();
+                const BUFFER_TIME_MS = 10 * 60 * 1000; // Buffer 10 menit
+
+                const estimatedStops = stops.map((stop, index) => {
+                    let arrivalTimeFormatted = '';
+
+                    if (index === 0) {
+                        arrivalTimeFormatted = new Date(cumulativeTimeMs).toTimeString().split(' ')[0];
+                    } else {
+                        const prevStop = stops[index - 1];
+                        const durationSec = intervalMap.get(`${prevStop.id}-${stop.id}`) || 0;
+                        const travelTimeMs = (durationSec * 1000) + BUFFER_TIME_MS;
+                        cumulativeTimeMs += travelTimeMs;
+
+                        arrivalTimeFormatted = new Date(cumulativeTimeMs).toTimeString().split(' ')[0];
+                    }
+
+                    return {
+                        stopId: stop.id,
+                        stopName: stop.stopName,
+                        stopOrder: stop.stopOrder,
+                        latitude: stop.latitude,
+                        longitude: stop.longitude,
+                        estimatedArrivalTime: arrivalTimeFormatted,
+                    };
+                });
+
+                // 3. Mapping data dengan field yang dipilih secara spesifik
+                return {
+                    assignmentId: assignment.id,
+                    date: assignment.assignmentDate,
+                    driver: {
+                        id: assignment.driver?.id,
+                        name: assignment.driver?.name, // Sesuaikan properti nama di entity Driver Anda jika berbeda (misal: fullName)
+                    },
+                    routeCode: assignment.route?.routeCode,
+                    routeName: assignment.route?.routeName,
+                    direction: assignment.direction,
+                    startTime: assignment.startTime,
+                    endTime: assignment.endTime,
+                    vehicle: {
+                        id: assignment.vehicle?.id,
+                        plateNumber: assignment.vehicle?.plateNumber,
+                        vehicleCode: assignment.vehicle?.vehicleCode,
+                        capacity: assignment.vehicle?.capacity,
+                        type: assignment.vehicle?.type,
+                    },
+                    estimatedStopsSchedule: estimatedStops,
+                };
+            }),
+        );
+
+        return result;
+
     }
 }
