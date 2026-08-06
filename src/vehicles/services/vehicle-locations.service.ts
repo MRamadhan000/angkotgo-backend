@@ -5,6 +5,7 @@ import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.enti
 import { CreateVehicleLocationDto } from '../dto/create/create-vehicle-location.dto';
 import { VehicleLocation } from '../entities/vehicle-location.entity';
 import { UpdateVehicleLocationDto } from '../dto/update/update-vehicle-location.dto';
+import { RouteStop } from 'src/routes/entities/route-stop.entity';
 
 @Injectable()
 export class VehicleLocationsService {
@@ -13,7 +14,9 @@ export class VehicleLocationsService {
         private readonly locationRepository: Repository<VehicleLocation>,
         @InjectRepository(VehicleAssignment)
         private readonly assignmentRepository: Repository<VehicleAssignment>,
-    ) {}
+        @InjectRepository(RouteStop)
+        private readonly routeStopRepository: Repository<RouteStop>,
+    ) { }
 
     async create(createDto: CreateVehicleLocationDto): Promise<VehicleLocation> {
         const assignment = await this.assignmentRepository.findOne({
@@ -22,6 +25,16 @@ export class VehicleLocationsService {
 
         if (!assignment) {
             throw new NotFoundException(`Penugasan kendaraan dengan ID ${createDto.vehicleAssignmentId} tidak ditemukan.`);
+        }
+
+        if (createDto.currentStopId) {
+            const stop = await this.routeStopRepository.findOne({
+                where: { id: createDto.currentStopId },
+            });
+
+            if (!stop) {
+                throw new NotFoundException(`Halte dengan ID ${createDto.currentStopId} tidak ditemukan.`);
+            }
         }
 
         const location = this.locationRepository.create(createDto);
@@ -49,11 +62,11 @@ export class VehicleLocationsService {
 
         return location;
     }
-    
     async update(id: number, updateDto: UpdateVehicleLocationDto): Promise<VehicleLocation> {
+        // 1. Cari data location berdasarkan ID (asumsi Anda sudah punya method findOne(id))
         const location = await this.findOne(id);
 
-        // Jika ada perubahan assignmentId, validasi dulu keberadaannya
+        // 2. Jika ada perubahan vehicleAssignmentId, validasi dulu keberadaannya
         if (updateDto.vehicleAssignmentId && updateDto.vehicleAssignmentId !== location.vehicleAssignmentId) {
             const assignment = await this.assignmentRepository.findOne({
                 where: { id: updateDto.vehicleAssignmentId },
@@ -63,7 +76,24 @@ export class VehicleLocationsService {
             }
         }
 
+        // 3. Validasi currentStopId jika disertakan dalam update
+        if (updateDto.currentStopId !== undefined) {
+            if (updateDto.currentStopId === null) {
+                location.currentStopId = undefined;
+            } else {
+                const stop = await this.routeStopRepository.findOne({
+                    where: { id: updateDto.currentStopId },
+                });
+                if (!stop) {
+                    throw new NotFoundException(`Halte dengan ID ${updateDto.currentStopId} tidak ditemukan.`);
+                }
+            }
+        }
+
+        // 4. Timpa data lama dengan data baru dari DTO
         Object.assign(location, updateDto);
+
+        // 5. Simpan perubahan ke database
         return await this.locationRepository.save(location);
     }
 
