@@ -5,7 +5,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany
+  OneToMany,
 } from 'typeorm';
 
 export enum DriverStatus {
@@ -56,7 +56,13 @@ export class Driver {
   })
   status!: DriverStatus;
 
-  @Column({ type: 'decimal', precision: 3, scale: 2, default: 5.00, name: 'average_rating' })
+  @Column({
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    default: 5.0,
+    name: 'average_rating',
+  })
   averageRating!: number;
 
   @Column({ type: 'int', default: 0, name: 'total_trips' })
