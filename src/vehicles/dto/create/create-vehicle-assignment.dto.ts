@@ -42,6 +42,10 @@ export class CreateVehicleAssignmentDto {
   })
   startTime!: string;
 
+  @IsInt()
+  @IsOptional()
+  currentPassengers?: number;
+
   @IsString({ message: 'Jam selesai harus berupa teks.' })
   @IsNotEmpty({ message: 'Jam selesai tidak boleh kosong.' })
   @Matches(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, { 

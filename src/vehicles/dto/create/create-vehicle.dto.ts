@@ -7,7 +7,7 @@ import {
   MaxLength, 
   IsOptional 
 } from 'class-validator';
-import { VehicleStatus } from 'src/vehicles/enum/vehicle.enum';
+import { VehicleStatus, VehicleType } from 'src/vehicles/enum/vehicle.enum';
 
 export class CreateVehicleDto {
   @IsString({ message: 'Nomor plat harus berupa teks.' })
@@ -33,4 +33,8 @@ export class CreateVehicleDto {
   @IsEnum(VehicleStatus, { message: 'Status kendaraan tidak valid.' })
   @IsOptional()
   status?: VehicleStatus;
+  
+  @IsEnum(VehicleType)
+  @IsOptional()
+  type?: VehicleType;
 }
