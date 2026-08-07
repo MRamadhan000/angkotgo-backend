@@ -261,4 +261,112 @@ export class VehicleAssignmentsService {
         return result;
 
     }
+
+    async getAllDriverTripHistory(driverId: number | string) {
+        const assignments = await this.assignmentRepository.find({
+            where: {
+                driverId: Number(driverId),
+            },
+            relations: {
+                route: true,
+                driver: true,
+                vehicle: true,
+                conductor: true,
+            },
+            order: {
+                assignmentDate: 'DESC',
+                startTime: 'DESC',
+            },
+        });
+
+        if (!assignments || assignments.length === 0) {
+            throw new NotFoundException(`Tidak ada riwayat penugasan trip untuk driver dengan ID: ${driverId}`);
+        }
+
+        const result = await Promise.all(
+            assignments.map(async (assignment) => {
+
+                return {
+                    assignmentId: assignment.id,
+                    date: assignment.assignmentDate,
+                    status: assignment.status,
+                    driver: {
+                        id: assignment.driver?.id,
+                        name: assignment.driver?.name,
+                    },
+                    conductor: {
+                        id: assignment.conductor?.id,
+                        name: assignment.conductor?.name,
+                    },
+                    routeCode: assignment.route?.routeCode,
+                    routeName: assignment.route?.routeName,
+                    direction: assignment.direction,
+                    startTime: assignment.startTime,
+                    endTime: assignment.endTime,
+                    vehicle: {
+                        id: assignment.vehicle?.id,
+                        plateNumber: assignment.vehicle?.plateNumber,
+                        vehicleCode: assignment.vehicle?.vehicleCode,
+                        capacity: assignment.vehicle?.capacity,
+                        type: assignment.vehicle?.type,
+                    },
+                };
+            }),
+        );
+
+        return result;
+    }
+
+    async getAllConductorTripHistory(conductorId: number | string) {
+        const assignments = await this.assignmentRepository.find({
+            where: {
+                conductorId: Number(conductorId),
+            },
+            relations: {
+                route: true,
+                conductor: true,
+                vehicle: true,
+                driver: true,
+            },
+            order: {
+                assignmentDate: 'DESC',
+                startTime: 'DESC',
+            },
+        });
+
+        if (!assignments || assignments.length === 0) {
+            throw new NotFoundException(`Tidak ada riwayat penugasan trip untuk kondektur dengan ID: ${conductorId}`);
+        }
+
+        const result = await Promise.all(
+            assignments.map(async (assignment) => {
+                return {
+                    assignmentId: assignment.id,
+                    date: assignment.assignmentDate,
+                    status: assignment.status,
+                    conductor: {
+                        id: assignment.conductor?.id,
+                        name: assignment.conductor?.name,
+                    },
+                    driver: {
+                        id: assignment.driver?.id,
+                        name: assignment.driver?.name,
+                    },
+                    routeCode: assignment.route?.routeCode,
+                    routeName: assignment.route?.routeName,
+                    direction: assignment.direction,
+                    startTime: assignment.startTime,
+                    endTime: assignment.endTime,
+                    vehicle: {
+                        id: assignment.vehicle?.id,
+                        plateNumber: assignment.vehicle?.plateNumber,
+                        vehicleCode: assignment.vehicle?.vehicleCode,
+                        capacity: assignment.vehicle?.capacity,
+                        type: assignment.vehicle?.type,
+                    },
+                };
+            }),
+        );
+        return result;
+    }
 }

@@ -53,6 +53,24 @@ export class VehicleAssignmentsController {
         };
     }
 
+    @Get('driver/:driverId/history')
+    async getDriverTripHistory(@Param('driverId', ParseIntPipe) driverId: number) {
+        const data = await this.assignmentsService.getAllDriverTripHistory(driverId);
+        return {
+            message: `Berhasil mengambil riwayat trip untuk driver ID ${driverId}.`,
+            data,
+        };
+    }
+
+    @Get('conductor/:conductorId/history')
+    async getConductorTripHistory(@Param('conductorId', ParseIntPipe) conductorId: number) {
+        const data = await this.assignmentsService.getAllConductorTripHistory(conductorId);
+        return {
+            message: `Berhasil mengambil riwayat trip untuk kondektur ID ${conductorId}.`,
+            data,
+        };
+    }
+
     @Get()
     async findAll(
         @Query('vehicleId') vehicleId?: string,
