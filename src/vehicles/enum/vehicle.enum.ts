@@ -26,3 +26,8 @@ export enum VehicleType {
   PREMIUM = 'PREMIUM',
   REGULER = 'REGULER',
 }
+
+export enum StopStatus {
+    HEADING_TO = 'HEADING_TO', // Sedang dalam perjalanan menuju halte (`currentStopId`)
+    AT_STOP = 'AT_STOP',       // Sedang berhenti / melayani naik-turun penumpang di halte tersebut
+}

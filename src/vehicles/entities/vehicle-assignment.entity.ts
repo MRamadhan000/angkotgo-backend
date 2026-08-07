@@ -75,15 +75,9 @@ export class VehicleAssignment {
   @Column({ type: 'int', name: 'conductor_id', nullable: true })
   conductorId?: number;
 
-  @ManyToOne(() => Conductor, (conductor) => conductor.assignments, {
-    onDelete: 'RESTRICT',
-    nullable: true,
-  })
-  @JoinColumn({ name: 'conductor_id' })
-  conductor?: Conductor;
-
-  @OneToMany(() => Booking, (booking) => booking.vehicleAssignment)
-  bookings!: Booking[];
+    @ManyToOne(() => Conductor, (conductor) => conductor.assignments, { onDelete: 'RESTRICT', nullable: true })
+    @JoinColumn({ name: 'conductor_id' })
+    conductor?: Conductor;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
