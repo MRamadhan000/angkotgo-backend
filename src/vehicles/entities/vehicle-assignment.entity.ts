@@ -73,7 +73,6 @@ export class VehicleAssignment {
     @JoinColumn({ name: 'conductor_id' })
     conductor?: Conductor;
 
-
     @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
     createdAt!: Date;
 

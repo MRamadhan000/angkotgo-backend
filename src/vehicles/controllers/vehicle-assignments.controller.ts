@@ -9,7 +9,8 @@ import {
     Query,
     ParseIntPipe,
     HttpCode,
-    HttpStatus
+    HttpStatus,
+    BadRequestException
 } from '@nestjs/common';
 import { CreateVehicleAssignmentDto } from '../dto/create/create-vehicle-assignment.dto';
 import { UpdateVehicleAssignmentDto } from '../dto/update/update-vehicle-assignment.dto';
@@ -35,6 +36,37 @@ export class VehicleAssignmentsController {
         const data = await this.assignmentsService.create(createDto);
         return {
             message: 'Penugasan kendaraan berhasil dibuat.',
+            data,
+        };
+    }
+
+  @Get('schedules')
+    async getAllDriversSchedules(@Query('date') date: string) {
+        if (!date) {
+            throw new BadRequestException('Parameter query "date" dengan format YYYY-MM-DD wajib diisi.');
+        }
+
+        const data = await this.assignmentsService.getAllDriversScheduleWithEstimatedArrival(date);
+        return {
+            message: `Berhasil mengambil seluruh jadwal penugasan dan estimasi waktu halte untuk tanggal ${date}.`,
+            data,
+        };
+    }
+
+    @Get('driver/:driverId/history')
+    async getDriverTripHistory(@Param('driverId', ParseIntPipe) driverId: number) {
+        const data = await this.assignmentsService.getAllDriverTripHistory(driverId);
+        return {
+            message: `Berhasil mengambil riwayat trip untuk driver ID ${driverId}.`,
+            data,
+        };
+    }
+
+    @Get('conductor/:conductorId/history')
+    async getConductorTripHistory(@Param('conductorId', ParseIntPipe) conductorId: number) {
+        const data = await this.assignmentsService.getAllConductorTripHistory(conductorId);
+        return {
+            message: `Berhasil mengambil riwayat trip untuk kondektur ID ${conductorId}.`,
             data,
         };
     }
