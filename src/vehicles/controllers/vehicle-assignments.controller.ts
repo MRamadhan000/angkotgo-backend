@@ -74,25 +74,6 @@ export class VehicleAssignmentsController {
         };
     }
 
-    @Get('personnel-schedule')
-    async getPersonnelSchedule(
-        @Query('driverId') driverId?: string,
-        @Query('conductorId') conductorId?: string,
-    ) {
-        const parsedDriverId = driverId ? parseInt(driverId, 10) : undefined;
-        const parsedConductorId = conductorId ? parseInt(conductorId, 10) : undefined;
-
-        const data = await this.assignmentsService.getScheduleByPersonnelId({
-            driverId: parsedDriverId,
-            conductorId: parsedConductorId,
-        });
-
-        return {
-            message: 'Berhasil mengambil jadwal penugasan berdasarkan personel.',
-            data,
-        };
-    }
-
 
     @Get('driver/:driverId/history')
     async getDriverTripHistory(@Param('driverId', ParseIntPipe) driverId: number) {
@@ -127,14 +108,16 @@ export class VehicleAssignmentsController {
     }
 
     @Get(':id')
-    async findOne(@Param('id', ParseIntPipe) id: number) {
-        const data = await this.assignmentsService.findOne(id);
+    async getVehicleAssignmentById(
+        @Param('id', ParseIntPipe) id: number,
+    ) {
+        const data = await this.assignmentsService.getVehicleAssignmentById(id);
         return {
-            message: `Berhasil mengambil data penugasan ID ${id}.`,
+            message: `Berhasil mengambil detail penugasan kendaraan dengan ID ${id}.`,
             data,
         };
     }
-
+    
     @Put(':id')
     async update(
         @Param('id', ParseIntPipe) id: number,

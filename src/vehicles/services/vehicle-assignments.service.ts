@@ -12,6 +12,7 @@ import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopInterval } from 'src/routes/entities/stop-interval.entity';
 import { AssignmentStatus } from '../enum/vehicle.enum';
 import { calculateEstimatedStops } from '../utils/schedule-estimation.util';
+import { formatDateToString } from '../utils/date.util';
 
 @Injectable()
 export class VehicleAssignmentsService {
@@ -239,7 +240,7 @@ export class VehicleAssignmentsService {
 
     }
 
-  async getActiveScheduleByPersonnel(params: {
+    async getActiveScheduleByPersonnel(params: {
         targetDate?: string;
         driverId?: number;
         conductorId?: number;
@@ -303,95 +304,74 @@ export class VehicleAssignmentsService {
         return result;
     }
 
-    async getScheduleByPersonnelId(params: {
-        driverId?: number;
-        conductorId?: number;
-    }) {
-        const { driverId, conductorId } = params;
-
-        if (!driverId && !conductorId) {
-            throw new BadRequestException('Harap sertakan driverId atau conductorId.');
-        }
-
-        const whereCondition: FindOptionsWhere<VehicleAssignment> = {};
-
-        if (driverId) whereCondition.driverId = driverId;
-        if (conductorId) whereCondition.conductorId = conductorId;
-
-        const assignments = await this.assignmentRepository.find({
-            where: whereCondition,
+    async getVehicleAssignmentById(assignmentId: number) {
+        const assignment = await this.assignmentRepository.findOne({
+            where: {
+                id: assignmentId,
+            },
             relations: {
                 route: true,
                 driver: true,
-                conductor: true,
                 vehicle: true,
+                conductor: true,
             },
-            order: { assignmentDate: 'DESC', startTime: 'ASC' },
         });
 
-        if (!assignments || assignments.length === 0) {
-            throw new NotFoundException('Tidak ada jadwal penugasan yang ditemukan untuk personel tersebut.');
+        if (!assignment) {
+            throw new NotFoundException(`Data penugasan kendaraan dengan ID ${assignmentId} tidak ditemukan`);
         }
 
-        const result = await Promise.all(
-            assignments.map(async (assignment) => {
-                const stops = await this.routeStopRepository.find({
-                    where: {
-                        routeId: assignment.routeId,
-                        direction: assignment.direction,
-                    },
-                    order: { stopOrder: 'ASC' },
-                });
+        const assignmentDateStr = formatDateToString(assignment.assignmentDate);
 
-                const intervals = await this.stopIntervalRepository.find({
-                    where: {
-                        routeId: assignment.routeId,
-                        direction: assignment.direction,
-                    },
-                });
+        const stops = await this.routeStopRepository.find({
+            where: {
+                routeId: assignment.routeId,
+                direction: assignment.direction,
+            },
+            order: { stopOrder: 'ASC' },
+        });
 
-                const dateString = assignment.assignmentDate instanceof Date
-                    ? assignment.assignmentDate.toISOString().split('T')[0]
-                    : String(assignment.assignmentDate);
+        const intervals = await this.stopIntervalRepository.find({
+            where: {
+                routeId: assignment.routeId,
+                direction: assignment.direction,
+            },
+        });
 
-                const estimatedStops = calculateEstimatedStops(
-                    dateString,
-                    assignment.startTime,
-                    stops,
-                    intervals,
-                    10,
-                );
-
-                return {
-                    assignmentId: assignment.id,
-                    date: assignment.assignmentDate,
-                    status: assignment.status,
-                    driver: {
-                        id: assignment.driver?.id,
-                        name: assignment.driver?.name,
-                    },
-                    conductor: {
-                        id: assignment.conductor?.id,
-                        name: assignment.conductor?.name,
-                    },
-                    routeCode: assignment.route?.routeCode,
-                    routeName: assignment.route?.routeName,
-                    direction: assignment.direction,
-                    startTime: assignment.startTime,
-                    endTime: assignment.endTime,
-                    vehicle: {
-                        id: assignment.vehicle?.id,
-                        plateNumber: assignment.vehicle?.plateNumber,
-                        vehicleCode: assignment.vehicle?.vehicleCode,
-                        capacity: assignment.vehicle?.capacity,
-                        type: assignment.vehicle?.type,
-                    },
-                    estimatedStopsSchedule: estimatedStops,
-                };
-            }),
+        const estimatedStops = calculateEstimatedStops(
+            assignmentDateStr,
+            assignment.startTime,
+            stops,
+            intervals,
+            10, // Buffer time 10 menit
         );
 
-        return result;
+        return {
+            assignmentId: assignment.id,
+            date: assignment.assignmentDate,
+            status: assignment.status,
+            direction: assignment.direction,
+            startTime: assignment.startTime,
+            endTime: assignment.endTime,
+            driver: {
+                id: assignment.driver?.id,
+                name: assignment.driver?.name,
+            },
+            conductor: {
+                id: assignment.conductor?.id,
+                name: assignment.conductor?.name,
+            },
+            routeCode: assignment.route?.routeCode,
+            routeName: assignment.route?.routeName,
+            vehicle: {
+                id: assignment.vehicle?.id,
+                plateNumber: assignment.vehicle?.plateNumber,
+                vehicleCode: assignment.vehicle?.vehicleCode,
+                capacity: assignment.vehicle?.capacity,
+                type: assignment.vehicle?.type,
+            },
+            estimatedStopsSchedule: estimatedStops,
+        };
     }
 
     async getAllDriverTripHistory(driverId: number | string) {
