@@ -12,6 +12,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { RoutesModule } from './routes/routes.module';
 import { ConductorsModule } from './conductors/conductors.module';
 import { UserModule } from './user/user.module';
+import { BookingsModule } from './bookings/bookings.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { UserModule } from './user/user.module';
     RoutesModule,
     ConductorsModule,
     UserModule,
+    BookingsModule,
   ],
 })
 export class AppModule implements OnModuleInit {
