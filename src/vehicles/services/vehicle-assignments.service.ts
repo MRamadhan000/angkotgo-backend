@@ -110,6 +110,7 @@ export class VehicleAssignmentsService {
                 vehicle: true,
                 driver: true,
                 route: true,
+                conductor : true,
             },
             order: { assignmentDate: 'DESC', startTime: 'ASC' },
         });
