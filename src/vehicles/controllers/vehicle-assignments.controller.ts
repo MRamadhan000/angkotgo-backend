@@ -40,7 +40,7 @@ export class VehicleAssignmentsController {
         };
     }
 
-  @Get('schedules')
+    @Get('schedules')
     async getAllDriversSchedules(@Query('date') date: string) {
         if (!date) {
             throw new BadRequestException('Parameter query "date" dengan format YYYY-MM-DD wajib diisi.');
@@ -52,6 +52,47 @@ export class VehicleAssignmentsController {
             data,
         };
     }
+
+    @Get('active-schedule-by-personnel')
+    async getActiveScheduleByPersonnel(
+        @Query('date') date: string,
+        @Query('driverId') driverId?: string,
+        @Query('conductorId') conductorId?: string,
+    ) {
+        const parsedDriverId = driverId ? parseInt(driverId, 10) : undefined;
+        const parsedConductorId = conductorId ? parseInt(conductorId, 10) : undefined;
+
+        const data = await this.assignmentsService.getActiveScheduleByPersonnel({
+            targetDate: date,
+            driverId: parsedDriverId,
+            conductorId: parsedConductorId,
+        });
+
+        return {
+            message: 'Berhasil mengambil jadwal aktif penugasan berdasarkan personel.',
+            data,
+        };
+    }
+
+    @Get('personnel-schedule')
+    async getPersonnelSchedule(
+        @Query('driverId') driverId?: string,
+        @Query('conductorId') conductorId?: string,
+    ) {
+        const parsedDriverId = driverId ? parseInt(driverId, 10) : undefined;
+        const parsedConductorId = conductorId ? parseInt(conductorId, 10) : undefined;
+
+        const data = await this.assignmentsService.getScheduleByPersonnelId({
+            driverId: parsedDriverId,
+            conductorId: parsedConductorId,
+        });
+
+        return {
+            message: 'Berhasil mengambil jadwal penugasan berdasarkan personel.',
+            data,
+        };
+    }
+
 
     @Get('driver/:driverId/history')
     async getDriverTripHistory(@Param('driverId', ParseIntPipe) driverId: number) {

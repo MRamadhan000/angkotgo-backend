@@ -1,15 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Driver } from 'src/drivers/entities/driver.entity';
 import { Conductor } from 'src/conductors/entities/conductor.entity'; // <-- Pastikan di-import
 import { Route } from 'src/routes/entities/route.entity';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { CreateVehicleAssignmentDto } from '../dto/create/create-vehicle-assignment.dto';
 import { UpdateVehicleAssignmentDto } from '../dto/update/update-vehicle-assignment.dto';
 import { VehicleAssignment } from '../entities/vehicle-assignment.entity';
 import { Vehicle } from '../entities/vehicle.entity';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopInterval } from 'src/routes/entities/stop-interval.entity';
+import { AssignmentStatus } from '../enum/vehicle.enum';
+import { calculateEstimatedStops } from '../utils/schedule-estimation.util';
 
 @Injectable()
 export class VehicleAssignmentsService {
@@ -110,7 +112,7 @@ export class VehicleAssignmentsService {
                 vehicle: true,
                 driver: true,
                 route: true,
-                conductor : true,
+                conductor: true,
             },
             order: { assignmentDate: 'DESC', startTime: 'ASC' },
         });
@@ -200,39 +202,13 @@ export class VehicleAssignmentsService {
                     },
                 });
 
-                const intervalMap = new Map<string, number>();
-                intervals.forEach((inv) => {
-                    intervalMap.set(`${inv.fromStopId}-${inv.toStopId}`, inv.durationInSeconds);
-                });
-
-                // Kalkulasi estimasi waktu tiba
-                const baseDateString = `${targetDate}T${assignment.startTime}`;
-                let cumulativeTimeMs = new Date(baseDateString).getTime();
-                const BUFFER_TIME_MS = 10 * 60 * 1000; // Buffer 10 menit
-
-                const estimatedStops = stops.map((stop, index) => {
-                    let arrivalTimeFormatted = '';
-
-                    if (index === 0) {
-                        arrivalTimeFormatted = new Date(cumulativeTimeMs).toTimeString().split(' ')[0];
-                    } else {
-                        const prevStop = stops[index - 1];
-                        const durationSec = intervalMap.get(`${prevStop.id}-${stop.id}`) || 0;
-                        const travelTimeMs = (durationSec * 1000) + BUFFER_TIME_MS;
-                        cumulativeTimeMs += travelTimeMs;
-
-                        arrivalTimeFormatted = new Date(cumulativeTimeMs).toTimeString().split(' ')[0];
-                    }
-
-                    return {
-                        stopId: stop.id,
-                        stopName: stop.stopName,
-                        stopOrder: stop.stopOrder,
-                        latitude: stop.latitude,
-                        longitude: stop.longitude,
-                        estimatedArrivalTime: arrivalTimeFormatted,
-                    };
-                });
+                const estimatedStops = calculateEstimatedStops(
+                    targetDate,
+                    assignment.startTime,
+                    stops,
+                    intervals,
+                    10, // Buffer time 10 menit
+                );
 
                 // 3. Mapping data dengan field yang dipilih secara spesifik
                 return {
@@ -261,6 +237,161 @@ export class VehicleAssignmentsService {
 
         return result;
 
+    }
+
+  async getActiveScheduleByPersonnel(params: {
+        targetDate?: string;
+        driverId?: number;
+        conductorId?: number;
+    }) {
+        const { targetDate, driverId, conductorId } = params;
+
+        const whereCondition: FindOptionsWhere<VehicleAssignment> = {
+            status: In(['SCHEDULED', 'ONGOING']),
+        };
+
+        if (targetDate) {
+            whereCondition.assignmentDate = new Date(targetDate) as any;
+        }
+
+        if (driverId) whereCondition.driverId = driverId;
+        if (conductorId) whereCondition.conductorId = conductorId;
+
+        const assignments = await this.assignmentRepository.find({
+            where: whereCondition,
+            relations: {
+                route: true,
+                driver: true,
+                vehicle: true,
+                conductor: true,
+            },
+            order: { startTime: 'ASC' },
+        });
+
+        if (!assignments || assignments.length === 0) {
+            throw new NotFoundException(`Tidak ada jadwal penugasan yang aktif.`);
+        }
+
+        const result = assignments.map((assignment) => {
+            return {
+                assignmentId: assignment.id,
+                date: assignment.assignmentDate,
+                status: assignment.status,
+                direction: assignment.direction,
+                startTime: assignment.startTime,
+                endTime: assignment.endTime,
+                driver: {
+                    id: assignment.driver?.id,
+                    name: assignment.driver?.name,
+                },
+                conductor: {
+                    id: assignment.conductor?.id,
+                    name: assignment.conductor?.name,
+                },
+                routeCode: assignment.route?.routeCode,
+                routeName: assignment.route?.routeName,
+                vehicle: {
+                    id: assignment.vehicle?.id,
+                    plateNumber: assignment.vehicle?.plateNumber,
+                    vehicleCode: assignment.vehicle?.vehicleCode,
+                    capacity: assignment.vehicle?.capacity,
+                    type: assignment.vehicle?.type,
+                },
+            };
+        });
+
+        return result;
+    }
+
+    async getScheduleByPersonnelId(params: {
+        driverId?: number;
+        conductorId?: number;
+    }) {
+        const { driverId, conductorId } = params;
+
+        if (!driverId && !conductorId) {
+            throw new BadRequestException('Harap sertakan driverId atau conductorId.');
+        }
+
+        const whereCondition: FindOptionsWhere<VehicleAssignment> = {};
+
+        if (driverId) whereCondition.driverId = driverId;
+        if (conductorId) whereCondition.conductorId = conductorId;
+
+        const assignments = await this.assignmentRepository.find({
+            where: whereCondition,
+            relations: {
+                route: true,
+                driver: true,
+                conductor: true,
+                vehicle: true,
+            },
+            order: { assignmentDate: 'DESC', startTime: 'ASC' },
+        });
+
+        if (!assignments || assignments.length === 0) {
+            throw new NotFoundException('Tidak ada jadwal penugasan yang ditemukan untuk personel tersebut.');
+        }
+
+        const result = await Promise.all(
+            assignments.map(async (assignment) => {
+                const stops = await this.routeStopRepository.find({
+                    where: {
+                        routeId: assignment.routeId,
+                        direction: assignment.direction,
+                    },
+                    order: { stopOrder: 'ASC' },
+                });
+
+                const intervals = await this.stopIntervalRepository.find({
+                    where: {
+                        routeId: assignment.routeId,
+                        direction: assignment.direction,
+                    },
+                });
+
+                const dateString = assignment.assignmentDate instanceof Date
+                    ? assignment.assignmentDate.toISOString().split('T')[0]
+                    : String(assignment.assignmentDate);
+
+                const estimatedStops = calculateEstimatedStops(
+                    dateString,
+                    assignment.startTime,
+                    stops,
+                    intervals,
+                    10,
+                );
+
+                return {
+                    assignmentId: assignment.id,
+                    date: assignment.assignmentDate,
+                    status: assignment.status,
+                    driver: {
+                        id: assignment.driver?.id,
+                        name: assignment.driver?.name,
+                    },
+                    conductor: {
+                        id: assignment.conductor?.id,
+                        name: assignment.conductor?.name,
+                    },
+                    routeCode: assignment.route?.routeCode,
+                    routeName: assignment.route?.routeName,
+                    direction: assignment.direction,
+                    startTime: assignment.startTime,
+                    endTime: assignment.endTime,
+                    vehicle: {
+                        id: assignment.vehicle?.id,
+                        plateNumber: assignment.vehicle?.plateNumber,
+                        vehicleCode: assignment.vehicle?.vehicleCode,
+                        capacity: assignment.vehicle?.capacity,
+                        type: assignment.vehicle?.type,
+                    },
+                    estimatedStopsSchedule: estimatedStops,
+                };
+            }),
+        );
+
+        return result;
     }
 
     async getAllDriverTripHistory(driverId: number | string) {
