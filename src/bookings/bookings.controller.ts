@@ -11,8 +11,7 @@ import {
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { Booking } from './entities/booking.entity';
-//import { Trip } from './entities/booking.entity';
-// import { UpdateTripDto } from './dto/update-booking.dto';
+import { UpdateBookingDto } from './dto/update-booking.dto';
 
 @Controller('bookings')
 export class BookingsController {
@@ -33,13 +32,13 @@ export class BookingsController {
     return await this.bookingsService.findOne(id);
   }
 
-  // @Patch(':id')
-  // async update(
-  //   @Param('id', ParseIntPipe) id: number,
-  //   @Body() updateTripDto: UpdateTripDto,
-  // ) {
-  //   return await this.tripsService.update(id, updateTripDto);
-  // }
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateTripDto: UpdateBookingDto,
+  ) {
+    return await this.bookingsService.updateStatus(id, updateTripDto.status);
+  }
 
   @Delete(':id')
   async remove(

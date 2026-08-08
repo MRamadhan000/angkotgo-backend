@@ -10,14 +10,7 @@ import {
 } from 'typeorm';
 import { User } from 'src/user/entities/user.entitiy';
 import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.entity';
-
-export enum BookingStatus {
-  PENDING = 'pending', // Menunggu pembayaran
-  PAID = 'paid', // Tiket aktif (siap dipakai)
-  COMPLETED = 'completed', // QR Code sudah discan sopir / perjalanan selesai
-  CANCELLED = 'cancelled', // Dibatalkan
-  EXPIRED = 'expired', // Batas waktu pembayaran habis
-}
+import { BookingStatus } from '../enum/booking.enum';
 
 @Entity('bookings')
 export class Booking {

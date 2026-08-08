@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Booking, BookingStatus } from './entities/booking.entity';
+import { Booking } from './entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { User } from 'src/user/entities/user.entitiy';
 import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.entity';
-import { AssignmentStatus } from 'src/vehicles/enum/vehicle.enum';
+import { BookingStatus } from './enum/booking.enum';
 
 @Injectable()
 export class BookingsService {
@@ -137,7 +137,7 @@ export class BookingsService {
     }
   }
 
-  async updateStatus(id: number, status: AssignmentStatus): Promise<Booking> {
+  async updateStatus(id: number, status: BookingStatus): Promise<Booking> {
     const booking = await this.bookingRepository.findOne({
       where: { id },
     });
@@ -146,7 +146,7 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    booking.status = BookingStatus.PAID;
+    booking.status = status;
     return await this.bookingRepository.save(booking);
   }
 

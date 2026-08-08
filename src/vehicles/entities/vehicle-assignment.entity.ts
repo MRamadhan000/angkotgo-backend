@@ -1,12 +1,12 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    ManyToOne,
-    JoinColumn,
-    CreateDateColumn,
-    UpdateDateColumn,
-    OneToMany
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Vehicle } from './vehicle.entity';
 import { AssignmentStatus, DirectionType } from '../enum/vehicle.enum';
@@ -75,9 +75,15 @@ export class VehicleAssignment {
   @Column({ type: 'int', name: 'conductor_id', nullable: true })
   conductorId?: number;
 
-    @ManyToOne(() => Conductor, (conductor) => conductor.assignments, { onDelete: 'RESTRICT', nullable: true })
-    @JoinColumn({ name: 'conductor_id' })
-    conductor?: Conductor;
+  @ManyToOne(() => Conductor, (conductor) => conductor.assignments, {
+    onDelete: 'RESTRICT',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'conductor_id' })
+  conductor?: Conductor;
+
+  @OneToMany(() => Booking, (booking) => booking.user)
+  bookings!: Booking[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
