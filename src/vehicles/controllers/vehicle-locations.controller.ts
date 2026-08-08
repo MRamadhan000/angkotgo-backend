@@ -5,7 +5,7 @@ import { UpdateVehicleLocationDto } from '../dto/update/update-vehicle-location.
 
 @Controller('vehicle-locations')
 export class VehicleLocationsController {
-    constructor(private readonly vehicleLocationsService: VehicleLocationsService) {}
+    constructor(private readonly vehicleLocationsService: VehicleLocationsService) { }
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
@@ -17,6 +17,16 @@ export class VehicleLocationsController {
         };
     }
 
+    @Post('start-session/:assignmentId')
+    @HttpCode(HttpStatus.OK)
+    async startSession(@Param('assignmentId') assignmentId: string) {
+        const data = await this.vehicleLocationsService.startSession(+assignmentId);
+        return {
+            message: 'Sesi penugasan kendaraan berhasil dimuat.',
+            data,
+        };
+    }
+
     @Get()
     async findAll(@Query('vehicleAssignmentId') vehicleAssignmentId?: string) {
         const data = await this.vehicleLocationsService.findAll(
@@ -24,6 +34,15 @@ export class VehicleLocationsController {
         );
         return {
             message: 'Berhasil mengambil daftar data lokasi.',
+            data,
+        };
+    }
+
+    @Get('latest/:assignmentId')
+    async findLatestByAssignmentId(@Param('assignmentId') assignmentId: string) {
+        const data = await this.vehicleLocationsService.findLatestByAssignmentId(+assignmentId);
+        return {
+            message: 'Berhasil mengambil data lokasi terbaru.',
             data,
         };
     }
