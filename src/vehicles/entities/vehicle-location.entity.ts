@@ -1,5 +1,5 @@
 // src/vehicles/entities/vehicle-location.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
 import { VehicleAssignment } from './vehicle-assignment.entity';
 import { RouteStop } from 'src/routes/entities/route-stop.entity'; // Sesuaikan path-nya
 import { StopStatus } from '../enum/vehicle.enum';
@@ -51,6 +51,28 @@ export class VehicleLocation {
     })
     stopStatus!: StopStatus;
 
+    // Kolom PostGIS untuk posisi GPS real-time angkot
+    @Column({
+        type: 'geography',
+        spatialFeatureType: 'Point',
+        srid: 4326,
+        nullable: true,
+        transformer: {
+            to: (value: any) => value,
+            from: (value: any) => value,
+        }
+    })
+    geom!: string;
+
     @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
     createdAt!: Date;
+
+    // Otomatis mengisi kolom geom setiap kali latitude/longitude masuk dari driver GPS
+    @BeforeInsert()
+    @BeforeUpdate()
+    generateGeom() {
+        if (this.latitude !== undefined && this.longitude !== undefined && this.latitude !== null && this.longitude !== null) {
+            this.geom = `SRID=4326;POINT(${this.longitude} ${this.latitude})` as any;
+        }
+    }
 }

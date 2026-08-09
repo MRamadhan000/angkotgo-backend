@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, BeforeUpdate } from 'typeorm';
 import { DirectionType } from '../enums/route.enum';
 
 @Entity('route_paths')
@@ -18,7 +18,7 @@ export class RoutePath {
     @Column({
         type: 'decimal', precision: 10, scale: 8, transformer: {
             to: (value: number) => value,
-            from: (value: string) => parseFloat(value), // Mengonversi string decimal dari DB kembali jadi number di TS
+            from: (value: string) => parseFloat(value),
         }
     })
     latitude!: number;
@@ -32,5 +32,29 @@ export class RoutePath {
     longitude!: number;
 
     @Column({ type: 'int', name: 'sequence_order' })
-    sequenceOrder!: number; // Urutan titik koordinat agar garis jalurnya tidak acak-acakan
+    sequenceOrder!: number;
+
+    // Kolom geom untuk PostGIS
+    // Diset select: falseopsional atau biarkan true jika ingin dibaca
+    @Column({
+        type: 'geography',
+        spatialFeatureType: 'Point',
+        srid: 4326,
+        nullable: true,
+        transformer: {
+            to: (value: any) => value,
+            from: (value: any) => value, // TypeORM biasanya membaca geography sebagai format WKB / GeoJSON tergantung driver
+        }
+    })
+    geom!: string;
+
+    // Otomatis generate geom setiap kali data di-insert atau di-update dari FE
+    @BeforeInsert()
+    @BeforeUpdate()
+    generateGeom() {
+        if (this.latitude !== undefined && this.longitude !== undefined) {
+            // Format WKT (Well-Known Text) yang dikenali PostGIS secara otomatis
+            this.geom = `SRID=4326;POINT(${this.longitude} ${this.latitude})` as any;
+        }
+    }
 }

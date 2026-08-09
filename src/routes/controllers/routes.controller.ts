@@ -8,7 +8,8 @@ import {
   Delete,
   ParseIntPipe,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  Query
 } from '@nestjs/common';
 import { CreateRouteDto } from '../dto/create/create-route.dto';
 import { UpdateRouteDto } from '../dto/update/update-route.dto';
@@ -27,6 +28,21 @@ export class RoutesController {
       message: 'Trayek baru berhasil ditambahkan.',
       data,
     };
+  }
+
+  @Get('search')
+  async searchRoute(
+    @Query('userLat') userLat: number,
+    @Query('userLng') userLng: number,
+    @Query('destLat') destLat: number,
+    @Query('destLng') destLng: number,
+  ) {
+    return await this.routesService.findAvailableRoutesForJourney(
+      Number(userLat),
+      Number(userLng),
+      Number(destLat),
+      Number(destLng),
+    );
   }
 
   @Get()
