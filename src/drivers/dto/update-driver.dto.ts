@@ -9,7 +9,7 @@ import {
   IsObject,
   ValidateNested,
   IsString,
-  IsNotEmpty
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DriverStatus } from '../entities/driver.entity';
@@ -29,7 +29,7 @@ class BankAccountInfoDto {
 }
 
 export class UpdateDriverDto extends PartialType(CreateDriverDto) {
-  // Semua field dasar (name, nik, email, phone, password, licenseNumber, licenseExpiryDate, address) 
+  // Semua field dasar (name, nik, email, phone, password, licenseNumber, licenseExpiryDate, address)
 
   @IsBoolean()
   @IsOptional()

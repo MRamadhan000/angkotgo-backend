@@ -1,16 +1,17 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Body,
-    Param,
-    Put,
-    Delete,
-    Query,
-    ParseIntPipe,
-    HttpCode,
-    HttpStatus,
-    BadRequestException
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  Query,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  Patch,
 } from '@nestjs/common';
 import { CreateVehicleAssignmentDto } from '../dto/create/create-vehicle-assignment.dto';
 import { UpdateVehicleAssignmentDto } from '../dto/update/update-vehicle-assignment.dto';
@@ -18,27 +19,27 @@ import { VehicleAssignmentsService } from '../services/vehicle-assignments.servi
 
 @Controller('vehicle-assignments')
 export class VehicleAssignmentsController {
-    constructor(private readonly assignmentsService: VehicleAssignmentsService) { }
+  constructor(private readonly assignmentsService: VehicleAssignmentsService) {}
 
-    @Post('bulk')
-    @HttpCode(HttpStatus.CREATED)
-    async createBulk(@Body() createDtos: CreateVehicleAssignmentDto[]) {
-        const data = await this.assignmentsService.createBulk(createDtos);
-        return {
-            message: `${data.length} penugasan kendaraan berhasil dibuat secara massal.`,
-            data,
-        };
-    }
+  @Post('bulk')
+  @HttpCode(HttpStatus.CREATED)
+  async createBulk(@Body() createDtos: CreateVehicleAssignmentDto[]) {
+    const data = await this.assignmentsService.createBulk(createDtos);
+    return {
+      message: `${data.length} penugasan kendaraan berhasil dibuat secara massal.`,
+      data,
+    };
+  }
 
-    @Post()
-    @HttpCode(HttpStatus.CREATED)
-    async create(@Body() createDto: CreateVehicleAssignmentDto) {
-        const data = await this.assignmentsService.create(createDto);
-        return {
-            message: 'Penugasan kendaraan berhasil dibuat.',
-            data,
-        };
-    }
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createDto: CreateVehicleAssignmentDto) {
+    const data = await this.assignmentsService.create(createDto);
+    return {
+      message: 'Penugasan kendaraan berhasil dibuat.',
+      data,
+    };
+  }
 
     @Get('schedules')
     async getAllDriversSchedules(@Query('date') date: string) {
@@ -84,28 +85,37 @@ export class VehicleAssignmentsController {
         };
     }
 
-    @Get('conductor/:conductorId/history')
-    async getConductorTripHistory(@Param('conductorId', ParseIntPipe) conductorId: number) {
-        const data = await this.assignmentsService.getAllConductorTripHistory(conductorId);
-        return {
-            message: `Berhasil mengambil riwayat trip untuk kondektur ID ${conductorId}.`,
-            data,
-        };
-    }
+  @Get('driver/:driverId/history')
+  async getDriverTripHistory(
+    @Param('driverId', ParseIntPipe) driverId: number,
+  ) {
+    const data =
+      await this.assignmentsService.getAllDriverTripHistory(driverId);
+    return {
+      message: `Berhasil mengambil riwayat trip untuk driver ID ${driverId}.`,
+      data,
+    };
+  }
 
-    @Get()
-    async findAll(
-        @Query('vehicleId') vehicleId?: string,
-        @Query('date') date?: string,
-    ) {
-        const parsedVehicleId = vehicleId ? parseInt(vehicleId, 10) : undefined;
-        const data = await this.assignmentsService.findAll(parsedVehicleId, date);
+  @Get('conductor/:conductorId/history')
+  async getConductorTripHistory(
+    @Param('conductorId', ParseIntPipe) conductorId: number,
+  ) {
+    const data =
+      await this.assignmentsService.getAllConductorTripHistory(conductorId);
+    return {
+      message: `Berhasil mengambil riwayat trip untuk kondektur ID ${conductorId}.`,
+      data,
+    };
+  }
 
-        return {
-            message: 'Berhasil mengambil daftar penugasan kendaraan.',
-            data,
-        };
-    }
+  @Get()
+  async findAll(
+    @Query('vehicleId') vehicleId?: string,
+    @Query('date') date?: string,
+  ) {
+    const parsedVehicleId = vehicleId ? parseInt(vehicleId, 10) : undefined;
+    const data = await this.assignmentsService.findAll(parsedVehicleId, date);
 
     @Get(':id')
     async getVehicleAssignmentById(
@@ -130,8 +140,22 @@ export class VehicleAssignmentsController {
         };
     }
 
-    @Delete(':id')
-    async remove(@Param('id', ParseIntPipe) id: number) {
-        return await this.assignmentsService.remove(id);
-    }
+
+  @Patch(':id')
+  async updatePassenger(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePassengerDto: UpdateVehicleAssignmentDto,
+  ) {
+    const updatedVehicleAssignment =
+      await this.assignmentsService.updatePassenger(id, updatePassengerDto);
+    return {
+      message: `Passenger amount successfully updated to ${updatePassengerDto.currentPassengers}.`,
+      data: updatedVehicleAssignment,
+    };
+  }
+
+  @Delete(':id')
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return await this.assignmentsService.remove(id);
+  }
 }
