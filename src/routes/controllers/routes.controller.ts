@@ -15,6 +15,7 @@ import { CreateRouteDto } from '../dto/create/create-route.dto';
 import { UpdateRouteDto } from '../dto/update/update-route.dto';
 import { Route } from '../entities/route.entity';
 import { RoutesService } from '../services/routes.service';
+import { FindUpcomingVehiclesDto } from '../dto/find-upcoming-vehicles.dto';
 
 @Controller('routes')
 export class RoutesController {
@@ -28,6 +29,16 @@ export class RoutesController {
       message: 'Trayek baru berhasil ditambahkan.',
       data,
     };
+  }
+
+  @Get('upcoming-vehicles')
+  findUpcomingVehicles(@Query() dto: FindUpcomingVehiclesDto) {
+    return this.routesService.findUpcomingVehiclesForUser(
+      dto.routeId,
+      dto.direction,
+      dto.latitude,
+      dto.longitude,
+    );
   }
 
   @Get('search')

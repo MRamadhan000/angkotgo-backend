@@ -1,10 +1,29 @@
 // src/vehicles/entities/vehicle-location.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    CreateDateColumn,
+    ManyToOne,
+    JoinColumn,
+    BeforeInsert,
+    BeforeUpdate,
+    Index,
+} from 'typeorm';
 import { VehicleAssignment } from './vehicle-assignment.entity';
 import { RouteStop } from 'src/routes/entities/route-stop.entity'; // Sesuaikan path-nya
 import { StopStatus } from '../enum/vehicle.enum';
 
+interface GeoJSONPoint {
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
+}
+
 @Entity('vehicle_locations')
+// Index gabungan ini penting untuk query "posisi terakhir tiap kendaraan"
+// (ORDER BY createdAt DESC WHERE vehicleAssignmentId = ...) yang pasti
+// sering dipanggil untuk tracking real-time.
+@Index(['vehicleAssignmentId', 'createdAt'])
 export class VehicleLocation {
     @PrimaryGeneratedColumn()
     id!: number;
@@ -16,23 +35,23 @@ export class VehicleLocation {
     @JoinColumn({ name: 'vehicle_assignment_id' })
     vehicleAssignment!: VehicleAssignment;
 
-    @Column('decimal', { 
-        precision: 10, 
+    @Column('decimal', {
+        precision: 10,
         scale: 8,
         transformer: {
             to: (value: number) => value,
             from: (value: string) => (value ? parseFloat(value) : null),
-        }
+        },
     })
     latitude!: number;
 
-    @Column('decimal', { 
-        precision: 11, 
+    @Column('decimal', {
+        precision: 11,
         scale: 8,
         transformer: {
             to: (value: number) => value,
             from: (value: string) => (value ? parseFloat(value) : null),
-        }
+        },
     })
     longitude!: number;
 
@@ -47,22 +66,31 @@ export class VehicleLocation {
         type: 'enum',
         enum: StopStatus,
         default: StopStatus.HEADING_TO,
-        name: 'stop_status'
+        name: 'stop_status',
     })
     stopStatus!: StopStatus;
 
-    // Kolom PostGIS untuk posisi GPS real-time angkot
+    /**
+     * Kolom PostGIS untuk posisi GPS real-time angkot.
+     * JANGAN di-set manual dari luar — diisi otomatis oleh hook
+     * generateGeom() di bawah berdasarkan latitude/longitude,
+     * supaya selalu sinkron dengan koordinat GPS terbaru.
+     *
+     * transformer pass-through karena value yang masuk sudah berupa
+     * objek GeoJSON valid (bukan string WKT yang ditolak driver pg
+     * untuk kolom tipe 'geography').
+     */
     @Column({
         type: 'geography',
         spatialFeatureType: 'Point',
         srid: 4326,
         nullable: true,
         transformer: {
-            to: (value: any) => value,
-            from: (value: any) => value,
-        }
+            to: (value: GeoJSONPoint | null) => value,
+            from: (value: GeoJSONPoint) => value,
+        },
     })
-    geom!: string;
+    geom!: GeoJSONPoint | null;
 
     @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
     createdAt!: Date;
@@ -70,9 +98,17 @@ export class VehicleLocation {
     // Otomatis mengisi kolom geom setiap kali latitude/longitude masuk dari driver GPS
     @BeforeInsert()
     @BeforeUpdate()
-    generateGeom() {
-        if (this.latitude !== undefined && this.longitude !== undefined && this.latitude !== null && this.longitude !== null) {
-            this.geom = `SRID=4326;POINT(${this.longitude} ${this.latitude})` as any;
+    generateGeom(): void {
+        if (
+            this.latitude !== undefined &&
+            this.longitude !== undefined &&
+            this.latitude !== null &&
+            this.longitude !== null
+        ) {
+            this.geom = {
+                type: 'Point',
+                coordinates: [Number(this.longitude), Number(this.latitude)],
+            };
         }
     }
 }
