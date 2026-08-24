@@ -71,65 +71,113 @@ export class RoutesService {
     return { message: `Trayek dengan ID ${id} berhasil dihapus.` };
   }
 
-  async findAvailableRoutesForJourney(
+ async findAvailableRoutesForJourney(
     userLat: number,
     userLng: number,
     destLat: number,
     destLng: number,
-  ) {
+) {
     const query = `
-      WITH user_loc AS (
-          SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326) AS geom
-      ),
-      dest_loc AS (
-          SELECT ST_SetSRID(ST_MakePoint($3, $4), 4326) AS geom
-      ),
-      ranked_user_paths AS (
-          SELECT 
-              rp.route_id,
-              rp.direction,
-              rp.sequence_order AS user_seq,
-              rp.geom <-> ul.geom AS jarak_ke_user,
-              ROW_NUMBER() OVER (
-                  PARTITION BY rp.route_id, rp.direction 
-                  ORDER BY rp.geom <-> ul.geom ASC
-              ) AS rn
-          FROM route_paths rp, user_loc ul
-          WHERE rp.geom <-> ul.geom <= 100
-      )
-      SELECT 
-          r.id AS "routeId",
-          r.route_code AS "routeCode",
-          r.route_name AS "routeName",
-          nup.direction,
-          nup.user_seq AS "sequenceTitikAwal",
-          (
-              SELECT rp.sequence_order 
-              FROM route_paths rp, dest_loc dl
-              WHERE rp.route_id = nup.route_id 
-                AND rp.direction = nup.direction
-              ORDER BY rp.geom <-> dl.geom ASC 
-              LIMIT 1
-          ) AS "sequenceTitikTujuan",
-          ROUND(nup.jarak_ke_user::numeric, 2) AS "jarakUserKeRuteMeter"
-      FROM ranked_user_paths nup
-      JOIN routes r ON r.id = nup.route_id
-      WHERE nup.rn = 1 -- Hanya ambil 1 titik terdekat per rute & arah!
-        AND nup.user_seq < (
-              SELECT rp.sequence_order 
-              FROM route_paths rp, dest_loc dl
-              WHERE rp.route_id = nup.route_id 
-                AND rp.direction = nup.direction
-              ORDER BY rp.geom <-> dl.geom ASC 
-              LIMIT 1
-          )
-      ORDER BY 
-          "jarakUserKeRuteMeter" ASC;
+        WITH user_loc AS (
+            SELECT ST_SetSRID(
+                ST_MakePoint($1, $2),
+                4326
+            )::geography AS geom
+        ),
+
+        dest_loc AS (
+            SELECT ST_SetSRID(
+                ST_MakePoint($3, $4),
+                4326
+            )::geography AS geom
+        ),
+
+        user_paths AS (
+            SELECT
+                rp.route_id,
+                rp.direction,
+                rp.sequence_order AS user_seq,
+                rp.geom <-> ul.geom AS jarak_ke_user
+            FROM route_paths rp
+            CROSS JOIN user_loc ul
+            WHERE rp.geom IS NOT NULL
+              AND rp.geom <-> ul.geom <= 100
+        ),
+
+        ranked_user_paths AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY route_id, direction
+                    ORDER BY jarak_ke_user ASC
+                ) AS rn
+            FROM user_paths
+        ),
+
+        destination_paths AS (
+            SELECT
+                rp.route_id,
+                rp.direction,
+                rp.sequence_order AS destination_seq,
+                rp.geom <-> dl.geom AS jarak_ke_destination
+            FROM route_paths rp
+            CROSS JOIN dest_loc dl
+            WHERE rp.geom IS NOT NULL
+              AND rp.geom <-> dl.geom <= 100
+        ),
+
+        ranked_destination_paths AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY route_id, direction
+                    ORDER BY jarak_ke_destination ASC
+                ) AS rn
+            FROM destination_paths
+        )
+
+        SELECT
+            r.id AS "routeId",
+            r.route_code AS "routeCode",
+            r.route_name AS "routeName",
+
+            up.direction,
+
+            up.user_seq AS "sequenceTitikAwal",
+            dp.destination_seq AS "sequenceTitikTujuan",
+
+            ROUND(up.jarak_ke_user::numeric, 2)
+                AS "jarakUserKeRuteMeter",
+
+            ROUND(dp.jarak_ke_destination::numeric, 2)
+                AS "jarakTujuanKeRuteMeter"
+
+        FROM ranked_user_paths up
+
+        JOIN ranked_destination_paths dp
+            ON dp.route_id = up.route_id
+            AND dp.direction = up.direction
+            AND dp.rn = 1
+
+        JOIN routes r
+            ON r.id = up.route_id
+
+        WHERE up.rn = 1
+
+          -- Pastikan perjalanan mengikuti arah rute
+          AND up.user_seq < dp.destination_seq
+
+        ORDER BY
+            up.jarak_ke_user ASC;
     `;
 
-    // Urutan parameter: [$1: userLng, $2: userLat, $3: destLng, $4: destLat]
-    const result = await this.dataSource.query(query, [userLng, userLat, destLng, destLat]);
+    const result = await this.dataSource.query(query, [
+        userLng,
+        userLat,
+        destLng,
+        destLat,
+    ]);
 
     return result;
-  }
+}
 }
