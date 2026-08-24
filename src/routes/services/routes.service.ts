@@ -71,12 +71,13 @@ export class RoutesService {
     return { message: `Trayek dengan ID ${id} berhasil dihapus.` };
   }
 
- async findAvailableRoutesForJourney(
+async findAvailableRoutesForJourney(
     userLat: number,
     userLng: number,
     destLat: number,
     destLng: number,
 ) {
+    // 1. Cari kandidat route menggunakan PostGIS
     const query = `
         WITH user_loc AS (
             SELECT ST_SetSRID(
@@ -97,19 +98,20 @@ export class RoutesService {
                 rp.route_id,
                 rp.direction,
                 rp.sequence_order AS user_seq,
-                rp.geom <-> ul.geom AS jarak_ke_user
+                rp.latitude,
+                rp.longitude,
+                rp.geom <-> ul.geom AS distance
             FROM route_paths rp
             CROSS JOIN user_loc ul
             WHERE rp.geom IS NOT NULL
-              AND rp.geom <-> ul.geom <= 100
+              AND rp.geom <-> ul.geom <= 1000
         ),
 
         ranked_user_paths AS (
-            SELECT
-                *,
+            SELECT *,
                 ROW_NUMBER() OVER (
                     PARTITION BY route_id, direction
-                    ORDER BY jarak_ke_user ASC
+                    ORDER BY distance
                 ) AS rn
             FROM user_paths
         ),
@@ -119,19 +121,20 @@ export class RoutesService {
                 rp.route_id,
                 rp.direction,
                 rp.sequence_order AS destination_seq,
-                rp.geom <-> dl.geom AS jarak_ke_destination
+                rp.latitude,
+                rp.longitude,
+                rp.geom <-> dl.geom AS distance
             FROM route_paths rp
             CROSS JOIN dest_loc dl
             WHERE rp.geom IS NOT NULL
-              AND rp.geom <-> dl.geom <= 100
+              AND rp.geom <-> dl.geom <= 1000
         ),
 
         ranked_destination_paths AS (
-            SELECT
-                *,
+            SELECT *,
                 ROW_NUMBER() OVER (
                     PARTITION BY route_id, direction
-                    ORDER BY jarak_ke_destination ASC
+                    ORDER BY distance
                 ) AS rn
             FROM destination_paths
         )
@@ -146,11 +149,11 @@ export class RoutesService {
             up.user_seq AS "sequenceTitikAwal",
             dp.destination_seq AS "sequenceTitikTujuan",
 
-            ROUND(up.jarak_ke_user::numeric, 2)
-                AS "jarakUserKeRuteMeter",
+            up.latitude AS "startLat",
+            up.longitude AS "startLng",
 
-            ROUND(dp.jarak_ke_destination::numeric, 2)
-                AS "jarakTujuanKeRuteMeter"
+            dp.latitude AS "destLat",
+            dp.longitude AS "destLng"
 
         FROM ranked_user_paths up
 
@@ -163,21 +166,106 @@ export class RoutesService {
             ON r.id = up.route_id
 
         WHERE up.rn = 1
-
-          -- Pastikan perjalanan mengikuti arah rute
           AND up.user_seq < dp.destination_seq
-
-        ORDER BY
-            up.jarak_ke_user ASC;
     `;
 
-    const result = await this.dataSource.query(query, [
+    const routes = await this.dataSource.query(query, [
         userLng,
         userLat,
         destLng,
         destLat,
     ]);
 
-    return result;
+    // 2. Hitung walking route menggunakan ORS
+    const results = await Promise.all(
+        routes.map(async (route) => {
+            const walkingToRoute = await this.getWalkingRoute(
+                userLng,
+                userLat,
+                Number(route.startLng),
+                Number(route.startLat),
+            );
+
+            const walkingToDestination = await this.getWalkingRoute(
+                Number(route.destLng),
+                Number(route.destLat),
+                destLng,
+                destLat,
+            );
+
+            return {
+                ...route,
+
+                walkingToRoute: {
+                    distance: walkingToRoute.distance,
+                    duration: walkingToRoute.duration,
+                },
+
+                walkingToDestination: {
+                    distance: walkingToDestination.distance,
+                    duration: walkingToDestination.duration,
+                },
+
+                totalWalkingDistance:
+                    walkingToRoute.distance +
+                    walkingToDestination.distance,
+
+                totalWalkingDuration:
+                    walkingToRoute.duration +
+                    walkingToDestination.duration,
+            };
+        }),
+    );
+
+    // 3. Route dengan jalan kaki paling sedikit menjadi prioritas
+    return results.sort(
+        (a, b) =>
+            a.totalWalkingDistance -
+            b.totalWalkingDistance,
+    );
+}
+private async getWalkingRoute(
+    startLng: number,
+    startLat: number,
+    endLng: number,
+    endLat: number,
+) {
+    const response = await fetch(
+        'https://api.openrouteservice.org/v2/directions/foot-walking/geojson',
+        {
+            method: 'POST',
+            headers: {
+                Authorization: process.env.ORS_API_KEY!,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                coordinates: [
+                    [startLng, startLat],
+                    [endLng, endLat],
+                ],
+            }),
+        },
+    );
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+        console.error('❌ ORS ERROR');
+        console.error('Status:', response.status);
+        console.error('Response:', responseText);
+
+        throw new Error(
+            `ORS Error ${response.status}: ${responseText}`,
+        );
+    }
+
+    const data = JSON.parse(responseText);
+
+    const summary = data.features[0].properties.summary;
+
+    return {
+        distance: summary.distance,
+        duration: summary.duration,
+    };
 }
 }
