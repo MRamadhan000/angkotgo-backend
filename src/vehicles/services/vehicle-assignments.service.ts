@@ -13,6 +13,10 @@ import { StopInterval } from 'src/routes/entities/stop-interval.entity';
 import { AssignmentStatus } from '../enum/vehicle.enum';
 import { calculateEstimatedStops } from '../utils/schedule-estimation.util';
 import { formatDateToString } from '../utils/date.util';
+import {
+    Payment,
+    PaymentStatus,
+} from 'src/payments/entities/payment.entity';
 
 @Injectable()
 export class VehicleAssignmentsService {
@@ -30,7 +34,13 @@ export class VehicleAssignmentsService {
         @InjectRepository(RouteStop)
         private readonly routeStopRepository: Repository<RouteStop>,
         @InjectRepository(StopInterval)
-        private readonly stopIntervalRepository: Repository<StopInterval>,) { }
+        private readonly stopIntervalRepository: Repository<StopInterval>,
+
+        @InjectRepository(Payment)
+        private readonly paymentRepository:
+            Repository<Payment>,
+
+    ) { }
 
     async create(createDto: CreateVehicleAssignmentDto): Promise<VehicleAssignment> {
         const vehicle = await this.vehicleRepository.findOne({ where: { id: createDto.vehicleId } });
@@ -232,6 +242,7 @@ export class VehicleAssignmentsService {
                         type: assignment.vehicle?.type,
                     },
                     estimatedStopsSchedule: estimatedStops,
+                    currentPassangers: assignment.currentPassengers
                 };
             }),
         );
@@ -298,6 +309,7 @@ export class VehicleAssignmentsService {
                     capacity: assignment.vehicle?.capacity,
                     type: assignment.vehicle?.type,
                 },
+                currentPassanger: assignment.currentPassengers
             };
         });
 
@@ -371,114 +383,454 @@ export class VehicleAssignmentsService {
                 type: assignment.vehicle?.type,
             },
             estimatedStopsSchedule: estimatedStops,
+            currentPassengers: assignment.currentPassengers
         };
     }
 
-    async getAllDriverTripHistory(driverId: number | string) {
-        const assignments = await this.assignmentRepository.find({
-            where: {
-                driverId: Number(driverId),
-            },
-            relations: {
-                route: true,
-                driver: true,
-                vehicle: true,
-                conductor: true,
-            },
-            order: {
-                assignmentDate: 'DESC',
-                startTime: 'DESC',
-            },
-        });
+    async getAllConductorTripHistory(
+        conductorId: number | string,
+    ) {
+        const assignments =
+            await this.assignmentRepository.find({
+                where: {
+                    conductorId: Number(conductorId),
+                },
 
-        if (!assignments || assignments.length === 0) {
-            throw new NotFoundException(`Tidak ada riwayat penugasan trip untuk driver dengan ID: ${driverId}`);
+                relations: {
+                    route: true,
+                    conductor: true,
+                    vehicle: true,
+                    driver: true,
+                },
+
+                order: {
+                    assignmentDate: 'DESC',
+                    startTime: 'DESC',
+                },
+            });
+
+        if (
+            !assignments ||
+            assignments.length === 0
+        ) {
+            throw new NotFoundException(
+                `Tidak ada riwayat penugasan trip untuk kondektur dengan ID: ${conductorId}`,
+            );
         }
 
-        const result = await Promise.all(
-            assignments.map(async (assignment) => {
+        // =====================================================
+        // AMBIL ID SEMUA VEHICLE ASSIGNMENT
+        // =====================================================
+
+        const assignmentIds =
+            assignments.map(
+                (assignment) => assignment.id,
+            );
+
+        // =====================================================
+        // AMBIL TOTAL PAYMENT PAID
+        // =====================================================
+
+        const paymentTotals =
+            await this.paymentRepository
+                .createQueryBuilder('payment')
+                .select(
+                    'payment.vehicle_assignment_id',
+                    'vehicleAssignmentId',
+                )
+                .addSelect(
+                    'COALESCE(SUM(payment.amount), 0)',
+                    'totalAmount',
+                )
+                .where(
+                    'payment.vehicle_assignment_id IN (:...assignmentIds)',
+                    {
+                        assignmentIds,
+                    },
+                )
+                .andWhere(
+                    'payment.status = :status',
+                    {
+                        status: PaymentStatus.PAID,
+                    },
+                )
+                .groupBy(
+                    'payment.vehicle_assignment_id',
+                )
+                .getRawMany();
+
+        // =====================================================
+        // BUAT MAP
+        // =====================================================
+
+        const paymentTotalMap =
+            new Map<number, number>();
+
+        paymentTotals.forEach(
+            (payment) => {
+                paymentTotalMap.set(
+                    Number(
+                        payment.vehicleAssignmentId,
+                    ),
+                    Number(
+                        payment.totalAmount,
+                    ),
+                );
+            },
+        );
+
+        // =====================================================
+        // RETURN
+        // =====================================================
+
+        const result = assignments.map(
+            (assignment) => {
+
+                const totalAmount =
+                    paymentTotalMap.get(
+                        assignment.id,
+                    ) ?? 0;
 
                 return {
-                    assignmentId: assignment.id,
-                    date: assignment.assignmentDate,
-                    status: assignment.status,
-                    driver: {
-                        id: assignment.driver?.id,
-                        name: assignment.driver?.name,
-                    },
+                    assignmentId:
+                        assignment.id,
+
+                    date:
+                        assignment.assignmentDate,
+
+                    status:
+                        assignment.status,
+
+                    // ==========================================
+                    // TOTAL PEMBAYARAN PAID
+                    // ==========================================
+
+                    totalAmount,
+
                     conductor: {
-                        id: assignment.conductor?.id,
-                        name: assignment.conductor?.name,
+                        id:
+                            assignment.conductor?.id,
+
+                        name:
+                            assignment.conductor?.name,
                     },
-                    routeCode: assignment.route?.routeCode,
-                    routeName: assignment.route?.routeName,
-                    direction: assignment.direction,
-                    startTime: assignment.startTime,
-                    endTime: assignment.endTime,
+
+                    driver: {
+                        id:
+                            assignment.driver?.id,
+
+                        name:
+                            assignment.driver?.name,
+                    },
+
+                    routeCode:
+                        assignment.route?.routeCode,
+
+                    routeName:
+                        assignment.route?.routeName,
+
+                    direction:
+                        assignment.direction,
+
+                    startTime:
+                        assignment.startTime,
+
+                    endTime:
+                        assignment.endTime,
+
                     vehicle: {
-                        id: assignment.vehicle?.id,
-                        plateNumber: assignment.vehicle?.plateNumber,
-                        vehicleCode: assignment.vehicle?.vehicleCode,
-                        capacity: assignment.vehicle?.capacity,
-                        type: assignment.vehicle?.type,
+                        id:
+                            assignment.vehicle?.id,
+
+                        plateNumber:
+                            assignment.vehicle?.plateNumber,
+
+                        vehicleCode:
+                            assignment.vehicle?.vehicleCode,
+
+                        capacity:
+                            assignment.vehicle?.capacity,
+
+                        type:
+                            assignment.vehicle?.type,
                     },
                 };
-            }),
+            },
         );
 
         return result;
     }
 
-    async getAllConductorTripHistory(conductorId: number | string) {
-        const assignments = await this.assignmentRepository.find({
-            where: {
-                conductorId: Number(conductorId),
-            },
-            relations: {
-                route: true,
-                conductor: true,
-                vehicle: true,
-                driver: true,
-            },
-            order: {
-                assignmentDate: 'DESC',
-                startTime: 'DESC',
-            },
-        });
+    async getAllDriverTripHistory(
+        driverId: number | string,
+    ) {
+        const assignments =
+            await this.assignmentRepository.find({
+                where: {
+                    driverId: Number(driverId),
+                },
 
-        if (!assignments || assignments.length === 0) {
-            throw new NotFoundException(`Tidak ada riwayat penugasan trip untuk kondektur dengan ID: ${conductorId}`);
+                relations: {
+                    route: true,
+                    driver: true,
+                    vehicle: true,
+                    conductor: true,
+                },
+
+                order: {
+                    assignmentDate: 'DESC',
+                    startTime: 'DESC',
+                },
+            });
+
+        if (
+            !assignments ||
+            assignments.length === 0
+        ) {
+            throw new NotFoundException(
+                `Tidak ada riwayat penugasan trip untuk driver dengan ID: ${driverId}`,
+            );
         }
 
-        const result = await Promise.all(
-            assignments.map(async (assignment) => {
+        // =====================================================
+        // AMBIL TOTAL PAYMENT PAID UNTUK SEMUA ASSIGNMENT
+        // =====================================================
+
+        const assignmentIds =
+            assignments.map(
+                (assignment) => assignment.id,
+            );
+
+        const paymentTotals =
+            await this.paymentRepository
+                .createQueryBuilder('payment')
+                .select(
+                    'payment.vehicle_assignment_id',
+                    'vehicleAssignmentId',
+                )
+                .addSelect(
+                    'COALESCE(SUM(payment.amount), 0)',
+                    'totalAmount',
+                )
+                .where(
+                    'payment.vehicle_assignment_id IN (:...assignmentIds)',
+                    {
+                        assignmentIds,
+                    },
+                )
+                .andWhere(
+                    'payment.status = :status',
+                    {
+                        status: PaymentStatus.PAID,
+                    },
+                )
+                .groupBy(
+                    'payment.vehicle_assignment_id',
+                )
+                .getRawMany();
+
+        // =====================================================
+        // UBAH HASIL PAYMENT MENJADI MAP
+        // =====================================================
+
+        const paymentTotalMap =
+            new Map<number, number>();
+
+        paymentTotals.forEach(
+            (payment) => {
+                paymentTotalMap.set(
+                    Number(
+                        payment.vehicleAssignmentId,
+                    ),
+                    Number(
+                        payment.totalAmount,
+                    ),
+                );
+            },
+        );
+
+        // =====================================================
+        // RETURN DATA
+        // =====================================================
+
+        const result = assignments.map(
+            (assignment) => {
+                const totalAmount =
+                    paymentTotalMap.get(
+                        assignment.id,
+                    ) ?? 0;
+
                 return {
-                    assignmentId: assignment.id,
-                    date: assignment.assignmentDate,
-                    status: assignment.status,
-                    conductor: {
-                        id: assignment.conductor?.id,
-                        name: assignment.conductor?.name,
-                    },
+                    assignmentId:
+                        assignment.id,
+
+                    date:
+                        assignment.assignmentDate,
+
+                    status:
+                        assignment.status,
+
+                    // ===============================================
+                    // TOTAL PEMBAYARAN PAID
+                    // ===============================================
+
+                    totalAmount,
+
                     driver: {
-                        id: assignment.driver?.id,
-                        name: assignment.driver?.name,
+                        id:
+                            assignment.driver?.id,
+
+                        name:
+                            assignment.driver?.name,
                     },
-                    routeCode: assignment.route?.routeCode,
-                    routeName: assignment.route?.routeName,
-                    direction: assignment.direction,
-                    startTime: assignment.startTime,
-                    endTime: assignment.endTime,
+
+                    conductor: {
+                        id:
+                            assignment.conductor?.id,
+
+                        name:
+                            assignment.conductor?.name,
+                    },
+
+                    routeCode:
+                        assignment.route?.routeCode,
+
+                    routeName:
+                        assignment.route?.routeName,
+
+                    direction:
+                        assignment.direction,
+
+                    startTime:
+                        assignment.startTime,
+
+                    endTime:
+                        assignment.endTime,
+
                     vehicle: {
-                        id: assignment.vehicle?.id,
-                        plateNumber: assignment.vehicle?.plateNumber,
-                        vehicleCode: assignment.vehicle?.vehicleCode,
-                        capacity: assignment.vehicle?.capacity,
-                        type: assignment.vehicle?.type,
+                        id:
+                            assignment.vehicle?.id,
+
+                        plateNumber:
+                            assignment.vehicle?.plateNumber,
+
+                        vehicleCode:
+                            assignment.vehicle?.vehicleCode,
+
+                        capacity:
+                            assignment.vehicle?.capacity,
+
+                        type:
+                            assignment.vehicle?.type,
                     },
                 };
-            }),
+            },
         );
+
         return result;
+    }
+
+    async getDriverTotalIncome(
+        driverId: number | string,
+    ) {
+        const id = Number(driverId);
+
+        if (!id || id <= 0) {
+            throw new BadRequestException(
+                'Driver ID tidak valid',
+            );
+        }
+
+        const result =
+            await this.paymentRepository
+                .createQueryBuilder('payment')
+                .innerJoin(
+                    VehicleAssignment,
+                    'assignment',
+                    'assignment.id = payment.vehicle_assignment_id',
+                )
+                .select(
+                    'COALESCE(SUM(payment.amount), 0)',
+                    'totalAmount',
+                )
+                .addSelect(
+                    'COUNT(payment.id)',
+                    'totalTransactions',
+                )
+                .where(
+                    'assignment.driver_id = :driverId',
+                    {
+                        driverId: id,
+                    },
+                )
+                .andWhere(
+                    'payment.status = :status',
+                    {
+                        status: PaymentStatus.PAID,
+                    },
+                )
+                .getRawOne();
+
+        return {
+            driverId: id,
+            totalAmount: Number(
+                result?.totalAmount ?? 0,
+            ),
+            totalTransactions: Number(
+                result?.totalTransactions ?? 0,
+            ),
+        };
+    }
+
+    async getConductorTotalIncome(
+        conductorId: number | string,
+    ) {
+        const id = Number(conductorId);
+
+        if (!id || id <= 0) {
+            throw new BadRequestException(
+                'Conductor ID tidak valid',
+            );
+        }
+
+        const result =
+            await this.paymentRepository
+                .createQueryBuilder('payment')
+                .innerJoin(
+                    VehicleAssignment,
+                    'assignment',
+                    'assignment.id = payment.vehicle_assignment_id',
+                )
+                .select(
+                    'COALESCE(SUM(payment.amount), 0)',
+                    'totalAmount',
+                )
+                .addSelect(
+                    'COUNT(payment.id)',
+                    'totalTransactions',
+                )
+                .where(
+                    'assignment.conductor_id = :conductorId',
+                    {
+                        conductorId: id,
+                    },
+                )
+                .andWhere(
+                    'payment.status = :status',
+                    {
+                        status: PaymentStatus.PAID,
+                    },
+                )
+                .getRawOne();
+
+        return {
+            conductorId: id,
+            totalAmount: Number(
+                result?.totalAmount ?? 0,
+            ),
+            totalTransactions: Number(
+                result?.totalTransactions ?? 0,
+            ),
+        };
     }
 }

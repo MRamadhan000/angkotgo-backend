@@ -6,8 +6,10 @@ import {
   UpdateDateColumn,
   BeforeInsert,
   BeforeUpdate,
+  OneToMany,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Payment } from 'src/payments/entities/payment.entity';
 
 @Entity('users')
 export class User {
@@ -34,6 +36,12 @@ export class User {
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updated_at!: Date;
+
+  @OneToMany(
+    () => Payment,
+    (payment) => payment.user,
+  )
+  payments!: Payment[];
 
   // Auto-hash password sebelum disimpan ke database
   @BeforeInsert()

@@ -5,13 +5,15 @@ import {
     ManyToOne,
     JoinColumn,
     CreateDateColumn,
-    UpdateDateColumn
+    UpdateDateColumn,
+    OneToMany
 } from 'typeorm';
 import { Vehicle } from './vehicle.entity';
 import { AssignmentStatus, DirectionType } from '../enum/vehicle.enum';
 import { Route } from 'src/routes/entities/route.entity';
 import { Driver } from 'src/drivers/entities/driver.entity';
 import { Conductor } from 'src/conductors/entities/conductor.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
 
 @Entity('vehicle_assignments')
 export class VehicleAssignment {
@@ -72,6 +74,12 @@ export class VehicleAssignment {
     @ManyToOne(() => Conductor, (conductor) => conductor.assignments, { onDelete: 'RESTRICT', nullable: true })
     @JoinColumn({ name: 'conductor_id' })
     conductor?: Conductor;
+
+    @OneToMany(
+        () => Payment,
+        (payment) => payment.vehicleAssignment,
+    )
+    payments!: Payment[];
 
     @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
     createdAt!: Date;
