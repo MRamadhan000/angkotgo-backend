@@ -17,6 +17,7 @@ import { VehicleLocationsController } from './controllers/vehicle-locations.cont
 import { VehicleLocationsService } from './services/vehicle-locations.service';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopInterval } from 'src/routes/entities/stop-interval.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StopInterval } from 'src/routes/entities/stop-interval.entity';
       Route,
       RouteStop,
       StopInterval,
+      Payment
     ])
   ],
   controllers: [
