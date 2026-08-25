@@ -12,6 +12,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { RoutesModule } from './routes/routes.module';
 import { ConductorsModule } from './conductors/conductors.module';
 import { UserModule } from './user/user.module';
+import { PaymentsModule } from './payments/payments.module';
 import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
 
 @Module({
@@ -56,6 +57,7 @@ import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
     RoutesModule,
     ConductorsModule,
     UserModule,
+    PaymentsModule,
     ProvideSinyalModule,
   ],
 })
