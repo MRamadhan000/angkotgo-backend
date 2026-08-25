@@ -232,6 +232,7 @@ export class VehicleAssignmentsService {
                         type: assignment.vehicle?.type,
                     },
                     estimatedStopsSchedule: estimatedStops,
+                    currentPassangers : assignment.currentPassengers
                 };
             }),
         );
@@ -298,6 +299,7 @@ export class VehicleAssignmentsService {
                     capacity: assignment.vehicle?.capacity,
                     type: assignment.vehicle?.type,
                 },
+                currentPassanger : assignment.currentPassengers
             };
         });
 
@@ -371,6 +373,7 @@ export class VehicleAssignmentsService {
                 type: assignment.vehicle?.type,
             },
             estimatedStopsSchedule: estimatedStops,
+            currentPassengers : assignment.currentPassengers
         };
     }
 
