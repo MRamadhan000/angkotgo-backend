@@ -1,8 +1,4 @@
-import {
-  Module,
-  Logger,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Module, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -13,6 +9,7 @@ import { RoutesModule } from './routes/routes.module';
 import { ConductorsModule } from './conductors/conductors.module';
 import { UserModule } from './user/user.module';
 import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
+import { CostsModule } from './tarif/costs.module';
 
 @Module({
   imports: [
@@ -26,8 +23,7 @@ import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
       inject: [ConfigService],
 
       useFactory: (configService: ConfigService) => {
-        const isDev =
-          configService.get<string>('NODE_ENV') !== 'production';
+        const isDev = configService.get<string>('NODE_ENV') !== 'production';
         return {
           type: 'postgres',
           url: configService.get<string>('DATABASE_URL'),
@@ -36,8 +32,8 @@ import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
           ssl: isDev
             ? false
             : {
-              rejectUnauthorized: false,
-            },
+                rejectUnauthorized: false,
+              },
           retryAttempts: 5,
           retryDelay: 3000,
           logging: isDev,
@@ -57,26 +53,22 @@ import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
     ConductorsModule,
     UserModule,
     ProvideSinyalModule,
+    CostsModule,
   ],
 })
 export class AppModule implements OnModuleInit {
   private readonly logger = new Logger(AppModule.name);
-  constructor(private readonly dataSource: DataSource) { }
+  constructor(private readonly dataSource: DataSource) {}
 
   async onModuleInit() {
     try {
       if (this.dataSource.isInitialized) {
         await this.dataSource.query('SELECT 1');
 
-        this.logger.log(
-          '✅ Connected to PostgreSQL (Supabase)',
-        );
+        this.logger.log('✅ Connected to PostgreSQL (Supabase)');
       }
     } catch (err) {
-      this.logger.error(
-        '❌ Failed to connect to PostgreSQL',
-        err,
-      );
+      this.logger.error('❌ Failed to connect to PostgreSQL', err);
     }
   }
 }
