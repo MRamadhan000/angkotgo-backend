@@ -13,6 +13,7 @@ import { RoutesModule } from './routes/routes.module';
 import { ConductorsModule } from './conductors/conductors.module';
 import { UserModule } from './user/user.module';
 import { PaymentsModule } from './payments/payments.module';
+import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PaymentsModule } from './payments/payments.module';
     ConductorsModule,
     UserModule,
     PaymentsModule,
+    ProvideSinyalModule,
   ],
 })
 export class AppModule implements OnModuleInit {
