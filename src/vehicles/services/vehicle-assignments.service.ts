@@ -560,7 +560,7 @@ export class VehicleAssignmentsService {
 
         return result;
     }
-    
+
     async getAllDriverTripHistory(
         driverId: number | string,
     ) {
@@ -728,5 +728,109 @@ export class VehicleAssignmentsService {
         );
 
         return result;
+    }
+
+    async getDriverTotalIncome(
+        driverId: number | string,
+    ) {
+        const id = Number(driverId);
+
+        if (!id || id <= 0) {
+            throw new BadRequestException(
+                'Driver ID tidak valid',
+            );
+        }
+
+        const result =
+            await this.paymentRepository
+                .createQueryBuilder('payment')
+                .innerJoin(
+                    VehicleAssignment,
+                    'assignment',
+                    'assignment.id = payment.vehicle_assignment_id',
+                )
+                .select(
+                    'COALESCE(SUM(payment.amount), 0)',
+                    'totalAmount',
+                )
+                .addSelect(
+                    'COUNT(payment.id)',
+                    'totalTransactions',
+                )
+                .where(
+                    'assignment.driver_id = :driverId',
+                    {
+                        driverId: id,
+                    },
+                )
+                .andWhere(
+                    'payment.status = :status',
+                    {
+                        status: PaymentStatus.PAID,
+                    },
+                )
+                .getRawOne();
+
+        return {
+            driverId: id,
+            totalAmount: Number(
+                result?.totalAmount ?? 0,
+            ),
+            totalTransactions: Number(
+                result?.totalTransactions ?? 0,
+            ),
+        };
+    }
+
+    async getConductorTotalIncome(
+        conductorId: number | string,
+    ) {
+        const id = Number(conductorId);
+
+        if (!id || id <= 0) {
+            throw new BadRequestException(
+                'Conductor ID tidak valid',
+            );
+        }
+
+        const result =
+            await this.paymentRepository
+                .createQueryBuilder('payment')
+                .innerJoin(
+                    VehicleAssignment,
+                    'assignment',
+                    'assignment.id = payment.vehicle_assignment_id',
+                )
+                .select(
+                    'COALESCE(SUM(payment.amount), 0)',
+                    'totalAmount',
+                )
+                .addSelect(
+                    'COUNT(payment.id)',
+                    'totalTransactions',
+                )
+                .where(
+                    'assignment.conductor_id = :conductorId',
+                    {
+                        conductorId: id,
+                    },
+                )
+                .andWhere(
+                    'payment.status = :status',
+                    {
+                        status: PaymentStatus.PAID,
+                    },
+                )
+                .getRawOne();
+
+        return {
+            conductorId: id,
+            totalAmount: Number(
+                result?.totalAmount ?? 0,
+            ),
+            totalTransactions: Number(
+                result?.totalTransactions ?? 0,
+            ),
+        };
     }
 }
