@@ -19,7 +19,11 @@ export class DriversService {
   ) { }
 
   async findAll(): Promise<Driver[]> {
-    return await this.driverRepository.find();
+    return await this.driverRepository.find({
+      order: {
+        name: 'ASC',
+      },
+    });
   }
 
   async findOne(id: number): Promise<Driver> {

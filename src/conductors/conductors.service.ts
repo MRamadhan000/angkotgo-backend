@@ -64,9 +64,12 @@ export class ConductorsService {
 
     return result;
   }
-
   async findAll(): Promise<Conductor[]> {
-    return await this.conductorRepository.find();
+    return await this.conductorRepository.find({
+      order: {
+        name: 'ASC',
+      },
+    });
   }
 
   async findOne(id: number): Promise<Conductor> {
