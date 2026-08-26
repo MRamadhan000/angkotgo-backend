@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 import { Conductor } from './entities/conductor.entity';
 import { CreateConductorDto } from './dto/create-conductor.dto';
 import { UpdateConductorDto } from './dto/update-conductor.dto';
@@ -98,9 +98,8 @@ export class ConductorsService {
     return await this.conductorRepository.save(conductor);
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: number): Promise<DeleteResult> {
     const conductor = await this.findOne(id);
-    await this.conductorRepository.remove(conductor);
-    return { message: `Kondektur dengan ID ${id} berhasil dihapus.` };
+    return await this.conductorRepository.softDelete(conductor.id);
   }
 }

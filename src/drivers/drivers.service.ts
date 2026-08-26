@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Driver, DriverStatus } from './entities/driver.entity';
 import { CreateDriverDto } from './dto/create-driver.dto';
@@ -174,4 +174,14 @@ export class DriversService {
     return await this.driverRepository.save(driver);
   }
 
+  async remove(id: number): Promise<DeleteResult> {
+    const driver = await this.driverRepository.findOne({
+      where: { id },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver not found');
+    }
+    return await this.driverRepository.softDelete(id);
+  }
 }
