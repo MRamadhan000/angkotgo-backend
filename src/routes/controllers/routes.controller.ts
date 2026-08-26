@@ -92,6 +92,10 @@ export class RoutesController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
-    return await this.routesService.remove(id);
+    await this.routesService.remove(id);
+
+    return {
+      message: `Trayek dengan ID ${id} berhasil dihapus.`,
+    };
   }
 }
