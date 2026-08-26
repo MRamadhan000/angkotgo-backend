@@ -7,9 +7,16 @@ import {
   BeforeInsert,
   BeforeUpdate,
   OneToMany,
+  DeleteDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Payment } from 'src/payments/entities/payment.entity';
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  PENDING = 'PENDING',
+  DEACTIVE = 'DEACTIVE',
+}
 
 @Entity('users')
 export class User {
@@ -19,17 +26,21 @@ export class User {
   @Column({ type: 'varchar', unique: true })
   email!: string;
 
-  @Column({ type: 'varchar', select: false }) // select: false agar password tidak ikut terambil secara tidak sengaja saat query
+  @Column({ type: 'varchar', select: false })
   password!: string;
 
   @Column({ type: 'varchar', nullable: false })
   name!: string;
 
-  @Column({ type: 'varchar', nullable: false })
-  nik!: string;
-
   @Column({ type: 'varchar', nullable: true })
   phone!: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.PENDING,
+  })
+  status!: UserStatus;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
@@ -37,13 +48,19 @@ export class User {
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updated_at!: Date;
 
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  deletedAt?: Date;
+
   @OneToMany(
     () => Payment,
     (payment) => payment.user,
   )
   payments!: Payment[];
 
-  // Auto-hash password sebelum disimpan ke database
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {

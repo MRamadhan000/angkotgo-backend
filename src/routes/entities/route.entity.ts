@@ -1,14 +1,15 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  CreateDateColumn, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
   UpdateDateColumn,
-  OneToMany 
+  OneToMany,
+  DeleteDateColumn
 } from 'typeorm';
 import { RoutePath } from './route-path.entity';
 import { RouteStop } from './route-stop.entity';
-import { StopInterval } from './stop-interval.entity'; // <-- 1. Import StopInterval
+import { StopInterval } from './stop-interval.entity';
 
 @Entity('routes')
 export class Route {
@@ -33,7 +34,6 @@ export class Route {
   })
   routeStops!: RouteStop[];
 
-  // <-- 2. Tambahkan relasi OneToMany ke StopInterval
   @OneToMany(() => StopInterval, (stopInterval) => stopInterval.route, {
     cascade: true,
     onDelete: 'CASCADE'
@@ -45,4 +45,11 @@ export class Route {
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt!: Date;
+
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  deletedAt?: Date;
 }
