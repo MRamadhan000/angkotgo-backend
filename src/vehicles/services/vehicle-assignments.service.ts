@@ -10,13 +10,13 @@ import { VehicleAssignment } from '../entities/vehicle-assignment.entity';
 import { Vehicle } from '../entities/vehicle.entity';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopInterval } from 'src/routes/entities/stop-interval.entity';
-import { AssignmentStatus } from '../enum/vehicle.enum';
 import { calculateEstimatedStops } from '../utils/schedule-estimation.util';
 import { formatDateToString } from '../utils/date.util';
 import {
     Payment,
     PaymentStatus,
 } from 'src/payments/entities/payment.entity';
+import { mapAssignmentResponse } from '../utils/response-map';
 
 @Injectable()
 export class VehicleAssignmentsService {
@@ -42,74 +42,72 @@ export class VehicleAssignmentsService {
 
     ) { }
 
-    async create(createDto: CreateVehicleAssignmentDto): Promise<VehicleAssignment> {
-        const vehicle = await this.vehicleRepository.findOne({ where: { id: createDto.vehicleId } });
-        if (!vehicle) {
-            throw new NotFoundException(`Kendaraan dengan ID ${createDto.vehicleId} tidak ditemukan.`);
-        }
-
-        const driver = await this.driverRepository.findOne({ where: { id: createDto.driverId } });
-        if (!driver) {
-            throw new NotFoundException(`Pengemudi dengan ID ${createDto.driverId} tidak ditemukan.`);
-        }
-
-        if (createDto.conductorId) {
-            const conductor = await this.conductorRepository.findOne({ where: { id: createDto.conductorId } });
-            if (!conductor) {
-                throw new NotFoundException(`Kondektur dengan ID ${createDto.conductorId} tidak ditemukan.`);
-            }
-        }
-
-        const route = await this.routeRepository.findOne({ where: { id: createDto.routeId } });
-        if (!route) {
-            throw new NotFoundException(`Trayek dengan ID ${createDto.routeId} tidak ditemukan.`);
-        }
+    async create(
+        createDto: CreateVehicleAssignmentDto,
+    ): Promise<VehicleAssignment> {
+        await this.validateAssignmentRelations(createDto);
 
         const assignment = this.assignmentRepository.create({
             ...createDto,
             assignmentDate: new Date(createDto.assignmentDate),
         });
 
-        return await this.assignmentRepository.save(assignment);
+        return this.assignmentRepository.save(assignment);
     }
 
-    async createBulk(createDtos: CreateVehicleAssignmentDto[]): Promise<VehicleAssignment[]> {
-        const assignmentsToCreate: VehicleAssignment[] = [];
+    async createBulk(
+        createDtos: CreateVehicleAssignmentDto[],
+    ): Promise<VehicleAssignment[]> {
+        const assignments: VehicleAssignment[] = [];
 
         for (const [index, createDto] of createDtos.entries()) {
-            const prefix = `Data ke-${index + 1}:`;
+            await this.validateAssignmentRelations(
+                createDto,
+                `Data ke-${index + 1}:`,
+            );
 
-            const vehicle = await this.vehicleRepository.findOne({ where: { id: createDto.vehicleId } });
-            if (!vehicle) {
-                throw new NotFoundException(`${prefix} Kendaraan dengan ID ${createDto.vehicleId} tidak ditemukan.`);
-            }
-
-            const driver = await this.driverRepository.findOne({ where: { id: createDto.driverId } });
-            if (!driver) {
-                throw new NotFoundException(`${prefix} Pengemudi dengan ID ${createDto.driverId} tidak ditemukan.`);
-            }
-
-            if (createDto.conductorId) {
-                const conductor = await this.conductorRepository.findOne({ where: { id: createDto.conductorId } });
-                if (!conductor) {
-                    throw new NotFoundException(`${prefix} Kondektur dengan ID ${createDto.conductorId} tidak ditemukan.`);
-                }
-            }
-
-            const route = await this.routeRepository.findOne({ where: { id: createDto.routeId } });
-            if (!route) {
-                throw new NotFoundException(`${prefix} Trayek dengan ID ${createDto.routeId} tidak ditemukan.`);
-            }
-
-            const assignment = this.assignmentRepository.create({
-                ...createDto,
-                assignmentDate: new Date(createDto.assignmentDate),
-            });
-
-            assignmentsToCreate.push(assignment);
+            assignments.push(
+                this.assignmentRepository.create({
+                    ...createDto,
+                    assignmentDate: new Date(createDto.assignmentDate),
+                }),
+            );
         }
 
-        return await this.assignmentRepository.save(assignmentsToCreate);
+        return this.assignmentRepository.save(assignments);
+    }
+
+    private async validateAssignmentRelations(
+        dto: CreateVehicleAssignmentDto,
+        prefix = '',
+    ) {
+        const vehicle = await this.vehicleRepository.findOne({
+            where: { id: dto.vehicleId },
+        });
+        if (!vehicle)
+            throw new NotFoundException(`${prefix} Kendaraan dengan ID ${dto.vehicleId} tidak ditemukan.`,);
+
+        const driver = await this.driverRepository.findOne({
+            where: { id: dto.driverId },
+        });
+        if (!driver)
+            throw new NotFoundException(`${prefix} Pengemudi dengan ID ${dto.driverId} tidak ditemukan.`,);
+
+        if (dto.conductorId) {
+            const conductor = await this.conductorRepository.findOne({
+                where: { id: dto.conductorId },
+            });
+            if (!conductor)
+                throw new NotFoundException(`${prefix} Kondektur dengan ID ${dto.conductorId} tidak ditemukan.`,);
+        }
+
+        const route = await this.routeRepository.findOne({
+            where: { id: dto.routeId },
+        });
+        if (!route)
+            throw new NotFoundException(
+                `${prefix} Trayek dengan ID ${dto.routeId} tidak ditemukan.`,
+            );
     }
 
     async findAll(vehicleId?: number, assignmentDate?: string): Promise<VehicleAssignment[]> {
@@ -177,7 +175,6 @@ export class VehicleAssignmentsService {
     }
 
     async getAllDriversScheduleWithEstimatedArrival(targetDate: string) {
-        // 1. Ambil semua assignment driver berdasarkan tanggal tertentu
         const assignments = await this.assignmentRepository.find({
             where: {
                 assignmentDate: new Date(targetDate) as any,
@@ -186,6 +183,7 @@ export class VehicleAssignmentsService {
                 route: true,
                 driver: true,
                 vehicle: true,
+                conductor: true,
             },
         });
 
@@ -193,10 +191,8 @@ export class VehicleAssignmentsService {
             throw new NotFoundException(`Tidak ada jadwal penugasan kendaraan pada tanggal ${targetDate}`);
         }
 
-        // 2. Proses tiap assignment menggunakan mapping secara paralel
         const result = await Promise.all(
             assignments.map(async (assignment) => {
-                // Ambil halte untuk rute & arah penugasan ini
                 const stops = await this.routeStopRepository.find({
                     where: {
                         routeId: assignment.routeId,
@@ -205,7 +201,6 @@ export class VehicleAssignmentsService {
                     order: { stopOrder: 'ASC' },
                 });
 
-                // Ambil data interval antar halte
                 const intervals = await this.stopIntervalRepository.find({
                     where: {
                         routeId: assignment.routeId,
@@ -221,34 +216,10 @@ export class VehicleAssignmentsService {
                     10, // Buffer time 10 menit
                 );
 
-                // 3. Mapping data dengan field yang dipilih secara spesifik
-                return {
-                    assignmentId: assignment.id,
-                    date: assignment.assignmentDate,
-                    driver: {
-                        id: assignment.driver?.id,
-                        name: assignment.driver?.name, // Sesuaikan properti nama di entity Driver Anda jika berbeda (misal: fullName)
-                    },
-                    routeCode: assignment.route?.routeCode,
-                    routeName: assignment.route?.routeName,
-                    direction: assignment.direction,
-                    startTime: assignment.startTime,
-                    endTime: assignment.endTime,
-                    vehicle: {
-                        id: assignment.vehicle?.id,
-                        plateNumber: assignment.vehicle?.plateNumber,
-                        vehicleCode: assignment.vehicle?.vehicleCode,
-                        capacity: assignment.vehicle?.capacity,
-                        type: assignment.vehicle?.type,
-                    },
-                    estimatedStopsSchedule: estimatedStops,
-                    currentPassangers: assignment.currentPassengers
-                };
+                return mapAssignmentResponse(assignment, estimatedStops);
             }),
         );
-
         return result;
-
     }
 
     async getActiveScheduleByPersonnel(params: {
@@ -284,36 +255,7 @@ export class VehicleAssignmentsService {
             throw new NotFoundException(`Tidak ada jadwal penugasan yang aktif.`);
         }
 
-        const result = assignments.map((assignment) => {
-            return {
-                assignmentId: assignment.id,
-                date: assignment.assignmentDate,
-                status: assignment.status,
-                direction: assignment.direction,
-                startTime: assignment.startTime,
-                endTime: assignment.endTime,
-                driver: {
-                    id: assignment.driver?.id,
-                    name: assignment.driver?.name,
-                },
-                conductor: {
-                    id: assignment.conductor?.id,
-                    name: assignment.conductor?.name,
-                },
-                routeCode: assignment.route?.routeCode,
-                routeName: assignment.route?.routeName,
-                vehicle: {
-                    id: assignment.vehicle?.id,
-                    plateNumber: assignment.vehicle?.plateNumber,
-                    vehicleCode: assignment.vehicle?.vehicleCode,
-                    capacity: assignment.vehicle?.capacity,
-                    type: assignment.vehicle?.type,
-                },
-                currentPassanger: assignment.currentPassengers
-            };
-        });
-
-        return result;
+        return assignments.map((assignment) => mapAssignmentResponse(assignment));
     }
 
     async getVehicleAssignmentById(assignmentId: number) {
@@ -358,421 +300,100 @@ export class VehicleAssignmentsService {
             10, // Buffer time 10 menit
         );
 
-        return {
-            assignmentId: assignment.id,
-            date: assignment.assignmentDate,
-            status: assignment.status,
-            direction: assignment.direction,
-            startTime: assignment.startTime,
-            endTime: assignment.endTime,
-            driver: {
-                id: assignment.driver?.id,
-                name: assignment.driver?.name,
-            },
-            conductor: {
-                id: assignment.conductor?.id,
-                name: assignment.conductor?.name,
-            },
-            routeCode: assignment.route?.routeCode,
-            routeName: assignment.route?.routeName,
-            vehicle: {
-                id: assignment.vehicle?.id,
-                plateNumber: assignment.vehicle?.plateNumber,
-                vehicleCode: assignment.vehicle?.vehicleCode,
-                capacity: assignment.vehicle?.capacity,
-                type: assignment.vehicle?.type,
-            },
-            estimatedStopsSchedule: estimatedStops,
-            currentPassengers: assignment.currentPassengers
-        };
+        return mapAssignmentResponse(assignment, estimatedStops);
     }
 
-    async getAllConductorTripHistory(
-        conductorId: number | string,
+    async getAllTripHistory(
+        employeeId: number | string,
+        type: 'driver' | 'conductor',
     ) {
-        const assignments =
-            await this.assignmentRepository.find({
-                where: {
-                    conductorId: Number(conductorId),
-                },
+        const id = Number(employeeId);
 
-                relations: {
-                    route: true,
-                    conductor: true,
-                    vehicle: true,
-                    driver: true,
-                },
-
-                order: {
-                    assignmentDate: 'DESC',
-                    startTime: 'DESC',
-                },
-            });
-
-        if (
-            !assignments ||
-            assignments.length === 0
-        ) {
-            throw new NotFoundException(
-                `Tidak ada riwayat penugasan trip untuk kondektur dengan ID: ${conductorId}`,
-            );
-        }
-
-        // =====================================================
-        // AMBIL ID SEMUA VEHICLE ASSIGNMENT
-        // =====================================================
-
-        const assignmentIds =
-            assignments.map(
-                (assignment) => assignment.id,
-            );
-
-        // =====================================================
-        // AMBIL TOTAL PAYMENT PAID
-        // =====================================================
-
-        const paymentTotals =
-            await this.paymentRepository
-                .createQueryBuilder('payment')
-                .select(
-                    'payment.vehicle_assignment_id',
-                    'vehicleAssignmentId',
-                )
-                .addSelect(
-                    'COALESCE(SUM(payment.amount), 0)',
-                    'totalAmount',
-                )
-                .where(
-                    'payment.vehicle_assignment_id IN (:...assignmentIds)',
-                    {
-                        assignmentIds,
-                    },
-                )
-                .andWhere(
-                    'payment.status = :status',
-                    {
-                        status: PaymentStatus.PAID,
-                    },
-                )
-                .groupBy(
-                    'payment.vehicle_assignment_id',
-                )
-                .getRawMany();
-
-        // =====================================================
-        // BUAT MAP
-        // =====================================================
-
-        const paymentTotalMap =
-            new Map<number, number>();
-
-        paymentTotals.forEach(
-            (payment) => {
-                paymentTotalMap.set(
-                    Number(
-                        payment.vehicleAssignmentId,
-                    ),
-                    Number(
-                        payment.totalAmount,
-                    ),
-                );
-            },
-        );
-
-        // =====================================================
-        // RETURN
-        // =====================================================
-
-        const result = assignments.map(
-            (assignment) => {
-
-                const totalAmount =
-                    paymentTotalMap.get(
-                        assignment.id,
-                    ) ?? 0;
-
-                return {
-                    assignmentId:
-                        assignment.id,
-
-                    date:
-                        assignment.assignmentDate,
-
-                    status:
-                        assignment.status,
-
-                    // ==========================================
-                    // TOTAL PEMBAYARAN PAID
-                    // ==========================================
-
-                    totalAmount,
-
-                    conductor: {
-                        id:
-                            assignment.conductor?.id,
-
-                        name:
-                            assignment.conductor?.name,
-                    },
-
-                    driver: {
-                        id:
-                            assignment.driver?.id,
-
-                        name:
-                            assignment.driver?.name,
-                    },
-
-                    routeCode:
-                        assignment.route?.routeCode,
-
-                    routeName:
-                        assignment.route?.routeName,
-
-                    direction:
-                        assignment.direction,
-
-                    startTime:
-                        assignment.startTime,
-
-                    endTime:
-                        assignment.endTime,
-
-                    vehicle: {
-                        id:
-                            assignment.vehicle?.id,
-
-                        plateNumber:
-                            assignment.vehicle?.plateNumber,
-
-                        vehicleCode:
-                            assignment.vehicle?.vehicleCode,
-
-                        capacity:
-                            assignment.vehicle?.capacity,
-
-                        type:
-                            assignment.vehicle?.type,
-                    },
-                };
-            },
-        );
-
-        return result;
-    }
-
-    async getAllDriverTripHistory(
-        driverId: number | string,
-    ) {
-        const assignments =
-            await this.assignmentRepository.find({
-                where: {
-                    driverId: Number(driverId),
-                },
-
-                relations: {
-                    route: true,
-                    driver: true,
-                    vehicle: true,
-                    conductor: true,
-                },
-
-                order: {
-                    assignmentDate: 'DESC',
-                    startTime: 'DESC',
-                },
-            });
-
-        if (
-            !assignments ||
-            assignments.length === 0
-        ) {
-            throw new NotFoundException(
-                `Tidak ada riwayat penugasan trip untuk driver dengan ID: ${driverId}`,
-            );
-        }
-
-        // =====================================================
-        // AMBIL TOTAL PAYMENT PAID UNTUK SEMUA ASSIGNMENT
-        // =====================================================
-
-        const assignmentIds =
-            assignments.map(
-                (assignment) => assignment.id,
-            );
-
-        const paymentTotals =
-            await this.paymentRepository
-                .createQueryBuilder('payment')
-                .select(
-                    'payment.vehicle_assignment_id',
-                    'vehicleAssignmentId',
-                )
-                .addSelect(
-                    'COALESCE(SUM(payment.amount), 0)',
-                    'totalAmount',
-                )
-                .where(
-                    'payment.vehicle_assignment_id IN (:...assignmentIds)',
-                    {
-                        assignmentIds,
-                    },
-                )
-                .andWhere(
-                    'payment.status = :status',
-                    {
-                        status: PaymentStatus.PAID,
-                    },
-                )
-                .groupBy(
-                    'payment.vehicle_assignment_id',
-                )
-                .getRawMany();
-
-        // =====================================================
-        // UBAH HASIL PAYMENT MENJADI MAP
-        // =====================================================
-
-        const paymentTotalMap =
-            new Map<number, number>();
-
-        paymentTotals.forEach(
-            (payment) => {
-                paymentTotalMap.set(
-                    Number(
-                        payment.vehicleAssignmentId,
-                    ),
-                    Number(
-                        payment.totalAmount,
-                    ),
-                );
-            },
-        );
-
-        // =====================================================
-        // RETURN DATA
-        // =====================================================
-
-        const result = assignments.map(
-            (assignment) => {
-                const totalAmount =
-                    paymentTotalMap.get(
-                        assignment.id,
-                    ) ?? 0;
-
-                return {
-                    assignmentId:
-                        assignment.id,
-
-                    date:
-                        assignment.assignmentDate,
-
-                    status:
-                        assignment.status,
-
-                    // ===============================================
-                    // TOTAL PEMBAYARAN PAID
-                    // ===============================================
-
-                    totalAmount,
-
-                    driver: {
-                        id:
-                            assignment.driver?.id,
-
-                        name:
-                            assignment.driver?.name,
-                    },
-
-                    conductor: {
-                        id:
-                            assignment.conductor?.id,
-
-                        name:
-                            assignment.conductor?.name,
-                    },
-
-                    routeCode:
-                        assignment.route?.routeCode,
-
-                    routeName:
-                        assignment.route?.routeName,
-
-                    direction:
-                        assignment.direction,
-
-                    startTime:
-                        assignment.startTime,
-
-                    endTime:
-                        assignment.endTime,
-
-                    vehicle: {
-                        id:
-                            assignment.vehicle?.id,
-
-                        plateNumber:
-                            assignment.vehicle?.plateNumber,
-
-                        vehicleCode:
-                            assignment.vehicle?.vehicleCode,
-
-                        capacity:
-                            assignment.vehicle?.capacity,
-
-                        type:
-                            assignment.vehicle?.type,
-                    },
-                };
-            },
-        );
-
-        return result;
-    }
-
-    async getDriverTotalIncome(
-        driverId: number | string,
-    ) {
-        const id = Number(driverId);
-
-        if (!id || id <= 0) {
+        if (!Number.isInteger(id) || id <= 0) {
             throw new BadRequestException(
-                'Driver ID tidak valid',
+                `${type === 'driver' ? 'Driver' : 'Conductor'} ID tidak valid`,
             );
         }
 
-        const result =
-            await this.paymentRepository
-                .createQueryBuilder('payment')
-                .innerJoin(
-                    VehicleAssignment,
-                    'assignment',
-                    'assignment.id = payment.vehicle_assignment_id',
-                )
-                .select(
-                    'COALESCE(SUM(payment.amount), 0)',
-                    'totalAmount',
-                )
-                .addSelect(
-                    'COUNT(payment.id)',
-                    'totalTransactions',
-                )
-                .where(
-                    'assignment.driver_id = :driverId',
-                    {
-                        driverId: id,
-                    },
-                )
-                .andWhere(
-                    'payment.status = :status',
-                    {
-                        status: PaymentStatus.PAID,
-                    },
-                )
-                .getRawOne();
+        const where = type === 'driver'
+            ? { driverId: id }
+            : { conductorId: id };
+
+        const assignments = await this.assignmentRepository.find({
+            where,
+            relations: {
+                route: true,
+                driver: true,
+                conductor: true,
+                vehicle: true,
+            },
+            order: {
+                assignmentDate: 'DESC',
+                startTime: 'DESC',
+            },
+        });
+
+        if (!assignments.length) {
+            throw new NotFoundException(
+                `Tidak ada riwayat penugasan trip untuk ${type === 'driver' ? 'driver' : 'kondektur'} dengan ID: ${id}`,
+            );
+        }
+
+        const assignmentIds = assignments.map((assignment) => assignment.id);
+
+        const paymentTotalMap = await this.getPaymentTotalsMap(assignmentIds);
+
+        return assignments.map((assignment) => {
+            const totalAmount = paymentTotalMap.get(assignment.id) ?? 0;
+            return mapAssignmentResponse(assignment, undefined, totalAmount);
+        });
+    }
+
+    async getEmployeeTotalIncome(
+        employeeId: number | string,
+        role: 'driver' | 'conductor',
+    ) {
+        const id = Number(employeeId);
+
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new BadRequestException(
+                `${role === 'driver' ? 'Driver' : 'Conductor'} ID tidak valid`,
+            );
+        }
+
+        const column =
+            role === 'driver'
+                ? 'assignment.driver_id'
+                : 'assignment.conductor_id';
+
+        const result = await this.paymentRepository
+            .createQueryBuilder('payment')
+            .innerJoin(
+                VehicleAssignment,
+                'assignment',
+                'assignment.id = payment.vehicle_assignment_id',
+            )
+            .select(
+                'COALESCE(SUM(payment.amount), 0)',
+                'totalAmount',
+            )
+            .addSelect(
+                'COUNT(payment.id)',
+                'totalTransactions',
+            )
+            .where(`${column} = :employeeId`, {
+                employeeId: id,
+            })
+            .andWhere(
+                'payment.status = :status',
+                {
+                    status: PaymentStatus.PAID,
+                },
+            )
+            .getRawOne();
 
         return {
-            driverId: id,
+            [`${role}Id`]: id,
             totalAmount: Number(
                 result?.totalAmount ?? 0,
             ),
@@ -782,55 +403,37 @@ export class VehicleAssignmentsService {
         };
     }
 
-    async getConductorTotalIncome(
-        conductorId: number | string,
-    ) {
-        const id = Number(conductorId);
+    private async getPaymentTotalsMap(assignmentIds: number[]): Promise<Map<number, number>> {
+        const paymentTotals = await this.paymentRepository
+            .createQueryBuilder('payment')
+            .select(
+                'payment.vehicle_assignment_id',
+                'vehicleAssignmentId',
+            )
+            .addSelect(
+                'COALESCE(SUM(payment.amount), 0)',
+                'totalAmount',
+            )
+            .where(
+                'payment.vehicle_assignment_id IN (:...assignmentIds)',
+                { assignmentIds },
+            )
+            .andWhere(
+                'payment.status = :status',
+                { status: PaymentStatus.PAID },
+            )
+            .groupBy('payment.vehicle_assignment_id')
+            .getRawMany();
 
-        if (!id || id <= 0) {
-            throw new BadRequestException(
-                'Conductor ID tidak valid',
+        const paymentTotalMap = new Map<number, number>();
+
+        paymentTotals.forEach((payment) => {
+            paymentTotalMap.set(
+                Number(payment.vehicleAssignmentId),
+                Number(payment.totalAmount),
             );
-        }
+        });
 
-        const result =
-            await this.paymentRepository
-                .createQueryBuilder('payment')
-                .innerJoin(
-                    VehicleAssignment,
-                    'assignment',
-                    'assignment.id = payment.vehicle_assignment_id',
-                )
-                .select(
-                    'COALESCE(SUM(payment.amount), 0)',
-                    'totalAmount',
-                )
-                .addSelect(
-                    'COUNT(payment.id)',
-                    'totalTransactions',
-                )
-                .where(
-                    'assignment.conductor_id = :conductorId',
-                    {
-                        conductorId: id,
-                    },
-                )
-                .andWhere(
-                    'payment.status = :status',
-                    {
-                        status: PaymentStatus.PAID,
-                    },
-                )
-                .getRawOne();
-
-        return {
-            conductorId: id,
-            totalAmount: Number(
-                result?.totalAmount ?? 0,
-            ),
-            totalTransactions: Number(
-                result?.totalTransactions ?? 0,
-            ),
-        };
+        return paymentTotalMap;
     }
 }
