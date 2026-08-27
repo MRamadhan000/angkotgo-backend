@@ -1,15 +1,14 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Param, 
-  Put, 
-  Delete, 
-  Query, 
-  ParseIntPipe, 
-  HttpCode, 
-  HttpStatus 
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
 } from '@nestjs/common';
 import { CreateVehicleServiceDto } from '../dto/create/create-vehicle-service.dto';
 import { UpdateVehicleServiceDto } from '../dto/update/update-vehicle-service.dto';
@@ -17,12 +16,15 @@ import { VehicleServicesService } from '../services/vehicle-services.service';
 
 @Controller('vehicle-services')
 export class VehicleServicesController {
-  constructor(private readonly vehicleServicesService: VehicleServicesService) {}
+  constructor(
+    private readonly vehicleServicesService: VehicleServicesService,
+  ) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createDto: CreateVehicleServiceDto) {
-    const data = await this.vehicleServicesService.create(createDto);
+  async create(@Body() dto: CreateVehicleServiceDto) {
+    const data = await this.vehicleServicesService.create(dto);
+
     return {
       message: 'Riwayat servis berhasil dicatat.',
       data,
@@ -30,13 +32,23 @@ export class VehicleServicesController {
   }
 
   @Get()
-  async findAll(@Query('vehicleId') vehicleId?: string) {
-    // Mendukung opsional query parameter: GET /vehicle-services?vehicleId=1
-    const parsedVehicleId = vehicleId ? parseInt(vehicleId, 10) : undefined;
-    const data = await this.vehicleServicesService.findAll(parsedVehicleId);
-    
+  async findAll() {
+    const data = await this.vehicleServicesService.findAll();
+
     return {
       message: 'Berhasil mengambil daftar riwayat servis.',
+      data,
+    };
+  }
+
+  @Get('vehicle/:vehicleId')
+  async findByVehicleId(
+    @Param('vehicleId', ParseIntPipe) vehicleId: number,
+  ) {
+    const data = await this.vehicleServicesService.findByVehicleId(vehicleId);
+
+    return {
+      message: 'Berhasil mengambil riwayat servis kendaraan.',
       data,
     };
   }
@@ -44,6 +56,7 @@ export class VehicleServicesController {
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.vehicleServicesService.findOne(id);
+
     return {
       message: `Berhasil mengambil data servis ID ${id}.`,
       data,
@@ -53,9 +66,10 @@ export class VehicleServicesController {
   @Put(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateVehicleServiceDto,
+    @Body() dto: UpdateVehicleServiceDto,
   ) {
-    const data = await this.vehicleServicesService.update(id, updateDto);
+    const data = await this.vehicleServicesService.update(id, dto);
+
     return {
       message: `Data servis ID ${id} berhasil diperbarui.`,
       data,
@@ -64,6 +78,6 @@ export class VehicleServicesController {
 
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number) {
-    return await this.vehicleServicesService.remove(id);
+    return this.vehicleServicesService.remove(id);
   }
 }

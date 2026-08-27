@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { CreateVehicleDto } from '../dto/create/create-vehicle.dto';
 import { UpdateVehicleDto } from '../dto/update/update-vehicle.dto';
 import { Vehicle } from '../entities/vehicle.entity';
+import { VehicleAssignment } from '../entities/vehicle-assignment.entity';
+import { VehicleService } from '../entities/vehicle-service.entity';
 
 @Injectable()
 export class VehiclesService {
@@ -28,8 +30,30 @@ export class VehiclesService {
     return await this.vehicleRepository.save(vehicle);
   }
 
-  async findAll(): Promise<Vehicle[]> {
-    return await this.vehicleRepository.find();
+  async findAll() {
+    return this.vehicleRepository
+      .createQueryBuilder('vehicle')
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('COUNT(assignment.id)', 'count')
+          .from(VehicleAssignment, 'assignment')
+          .where('assignment.vehicle_id = vehicle.id');
+      }, 'assignmentCount')
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('COUNT(service.id)', 'count')
+          .from(VehicleService, 'service')
+          .where('service.vehicle_id = vehicle.id');
+      }, 'serviceCount')
+      .orderBy('vehicle.id', 'ASC')
+      .getRawAndEntities()
+      .then(({ entities, raw }) =>
+        entities.map((vehicle, index) => ({
+          ...vehicle,
+          assignmentCount: Number(raw[index].assignmentCount ?? 0),
+          serviceCount: Number(raw[index].serviceCount ?? 0),
+        })),
+      );
   }
 
   async findOne(id: number): Promise<Vehicle> {
