@@ -9,7 +9,7 @@ import {
     Max,
     Min,
 } from 'class-validator';
-import { DirectionType } from '../../enum/vehicle.enum';
+import { AssignmentStatus, DirectionType } from '../../enum/vehicle.enum';
 
 export class CreateScheduleTemplateDto {
     @IsInt()
@@ -54,4 +54,9 @@ export class CreateScheduleTemplateDto {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @IsEnum(AssignmentStatus, { message: 'Status penugasan tidak valid.' })
+    @IsOptional()
+    status?: AssignmentStatus;
+
 }

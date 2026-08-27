@@ -35,6 +35,7 @@ export class MockLiveLocation {
     @Column({
         type: 'jsonb',
     })
+    // lng lat
     coordinates!: [number, number][];
 
     @CreateDateColumn({

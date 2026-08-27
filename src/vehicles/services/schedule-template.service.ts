@@ -6,6 +6,7 @@ import { VehicleAssignment } from '../entities/vehicle-assignment.entity';
 import { CreateScheduleTemplateDto } from '../dto/create/create-schedule-template.dto';
 import { UpdateScheduleTemplateDto } from '../dto/update/update-schedule-template.dto';
 import { ScheduleTemplate } from '../entities/schedule-template.entity';
+import { VehicleLocation } from '../entities/vehicle-location.entity';
 
 @Injectable()
 export class ScheduleTemplateService {
@@ -14,6 +15,8 @@ export class ScheduleTemplateService {
         private readonly templateRepository: Repository<ScheduleTemplate>,
         @InjectRepository(VehicleAssignment)
         private readonly assignmentRepository: Repository<VehicleAssignment>,
+        @InjectRepository(VehicleLocation)
+        private readonly locationRepository: Repository<VehicleLocation>,
     ) { }
 
     async create(dto: CreateScheduleTemplateDto): Promise<ScheduleTemplate> {
@@ -29,16 +32,72 @@ export class ScheduleTemplateService {
 
         return this.templateRepository.save(templates);
     }
-
-    async findAll(): Promise<ScheduleTemplate[]> {
-        return this.templateRepository.find({
+    async findAll() {
+        const templates = await this.templateRepository.find({
             relations: {
                 route: true,
                 vehicle: true,
                 driver: true,
                 conductor: true,
+                mockLiveLocation: true,
             },
         });
+
+        return templates.map((template) => ({
+            id: template.id,
+
+            routeId: template.routeId,
+            route: template.route
+                ? {
+                    id: template.route.id,
+                    routeCode: template.route.routeCode,
+                    routeName: template.route.routeName,
+                }
+                : null,
+
+            vehicleId: template.vehicleId,
+            vehicle: template.vehicle
+                ? {
+                    id: template.vehicle.id,
+                    vehicleCode: template.vehicle.vehicleCode,
+                    plateNumber: template.vehicle.plateNumber,
+                    type: template.vehicle.type,
+                }
+                : null,
+
+            driverId: template.driverId,
+            driver: template.driver
+                ? {
+                    id: template.driver.id,
+                    name: template.driver.name,
+                }
+                : null,
+
+            conductorId: template.conductorId,
+            conductor: template.conductor
+                ? {
+                    id: template.conductor.id,
+                    name: template.conductor.name,
+                }
+                : null,
+
+            startTime: template.startTime,
+            endTime: template.endTime,
+            direction: template.direction,
+
+            activeDays: template.activeDays?.map(Number) ?? [],
+
+            isActive: template.isActive,
+            status: template.status,
+
+            mockLiveLocationId: template.mockLiveLocationId,
+            mockLiveLocation: template.mockLiveLocation
+                ? {
+                    id: template.mockLiveLocation.id,
+                    name: template.mockLiveLocation.name,
+                }
+                : null,
+        }));
     }
 
     async findOne(id: number): Promise<ScheduleTemplate> {
@@ -121,5 +180,76 @@ export class ScheduleTemplateService {
         }
 
         return assignments;
+    }
+
+    /**
+     * Aktifkan semua schedule template yang isActive=true:
+     * buat 7 VehicleAssignment per template (hari ini + 6 hari ke depan)
+     * dan seed VehicleLocation dari koordinat mockLiveLocation (jika ada).
+     */
+    async activateScheduleTemplate(): Promise<{
+        totalTemplatesProcessed: number;
+        assignments: VehicleAssignment[];
+        totalLocationsInserted: number;
+    }> {
+        // 1. Ambil semua template aktif beserta relasi mockLiveLocation
+        const activeTemplates = await this.templateRepository.find({
+            where: { isActive: true },
+            relations: { mockLiveLocation: true },
+        });
+
+        const allAssignments: VehicleAssignment[] = [];
+        let totalLocationsInserted = 0;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 2. Loop setiap template aktif
+        for (const template of activeTemplates) {
+            const coordinates = template.mockLiveLocation?.coordinates ?? []; // [lng, lat][]
+
+            // 3. Loop 7 hari: hari ini + 6 hari ke depan
+            for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+                const assignmentDate = new Date(today);
+                assignmentDate.setDate(today.getDate() + dayOffset);
+
+                // 4. Buat VehicleAssignment untuk tanggal tersebut
+                const assignment = this.assignmentRepository.create({
+                    routeId: template.routeId,
+                    vehicleId: template.vehicleId,
+                    driverId: template.driverId,
+                    conductorId: template.conductorId,
+                    direction: template.direction,
+                    assignmentDate: assignmentDate,
+                    startTime: template.startTime,
+                    endTime: template.endTime,
+                    status: template.status,
+                    currentPassengers: 10,
+                });
+
+                const savedAssignment = await this.assignmentRepository.save(assignment);
+                allAssignments.push(savedAssignment);
+
+                // 5. Bulk-insert koordinat dari mockLiveLocation sebagai VehicleLocation (jika ada)
+                if (coordinates.length > 0) {
+                    const locationEntities = coordinates.map(([lng, lat]) =>
+                        this.locationRepository.create({
+                            vehicleAssignmentId: savedAssignment.id,
+                            longitude: lng,
+                            latitude: lat,
+                        }),
+                    );
+
+                    await this.locationRepository.save(locationEntities);
+                    totalLocationsInserted += locationEntities.length;
+                }
+            }
+        }
+
+        return {
+            totalTemplatesProcessed: activeTemplates.length,
+            assignments: allAssignments,
+            totalLocationsInserted,
+        };
     }
 }

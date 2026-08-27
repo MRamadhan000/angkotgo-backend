@@ -82,6 +82,15 @@ export class ScheduleTemplateController {
         return { message: 'Schedule template berhasil diperbarui.', data };
     }
 
+    @Post('start')
+    async start() {
+        const data = await this.scheduleTemplateService.activateScheduleTemplate();
+        return {
+            message: `${data.totalTemplatesProcessed} template aktif dijalankan. ${data.assignments.length} assignment dan ${data.totalLocationsInserted} vehicle location berhasil dibuat.`,
+            data,
+        };
+    }
+
     @Delete(':id')
     async remove(@Param('id') id: string) {
         await this.scheduleTemplateService.remove(+id);
