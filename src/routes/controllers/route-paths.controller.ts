@@ -39,6 +39,25 @@ export class RoutePathsController {
         };
     }
 
+    @Get('mock')
+    @HttpCode(HttpStatus.OK)
+    async getMockPoints(
+        @Query('routeId', ParseIntPipe) routeId: number,
+        @Query('direction') direction: string,
+        @Query('level', ParseIntPipe) level: number,
+    ) {
+        const data = await this.routePathsService.getMockPoints(
+            routeId,
+            direction,
+            level,
+        );
+
+        return {
+            message: 'Berhasil mengambil titik mock perjalanan.',
+            data,
+        };
+    }
+
     @Get()
     @HttpCode(HttpStatus.OK)
     async findByRouteAndDirection(

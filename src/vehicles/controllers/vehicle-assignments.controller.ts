@@ -74,64 +74,38 @@ export class VehicleAssignmentsController {
         };
     }
 
-    @Get('driver/:driverId/history')
-    async getDriverTripHistory(@Param('driverId', ParseIntPipe) driverId: number) {
-        const data = await this.assignmentsService.getAllDriverTripHistory(driverId);
-        return {
-            message: `Berhasil mengambil riwayat trip untuk driver ID ${driverId}.`,
-            data,
-        };
-    }
-
-    @Get(
-        'driver/:driverId/total-income',
-    )
-    async getDriverTotalIncome(
-        @Param(
-            'driverId',
-            ParseIntPipe,
-        )
-        driverId: number,
+    @Get('history')
+    async getTripHistory(
+        @Query('id') id: string,
+        @Query('type') type: 'driver' | 'conductor',
     ) {
-        const data =
-            await this.assignmentsService
-                .getDriverTotalIncome(
-                    driverId,
-                );
+        if (!id) throw new BadRequestException('Parameter query "id" wajib diisi.');
+        if (!['driver', 'conductor'].includes(type)) {
+            throw new BadRequestException('Parameter "type" harus berupa driver atau conductor.');
+        }
+
+        const data = await this.assignmentsService.getAllTripHistory(Number(id), type);
 
         return {
-            message: `Berhasil mengambil total pendapatan driver ID ${driverId}.`,
+            message: `Berhasil mengambil riwayat trip ${type} ID ${id}.`,
             data,
         };
     }
 
-    @Get('conductor/:conductorId/history')
-    async getConductorTripHistory(@Param('conductorId', ParseIntPipe) conductorId: number) {
-        const data = await this.assignmentsService.getAllConductorTripHistory(conductorId);
-        return {
-            message: `Berhasil mengambil riwayat trip untuk kondektur ID ${conductorId}.`,
-            data,
-        };
-    }
-
-    @Get(
-        'conductor/:conductorId/total-income',
-    )
-    async getConductorTotalIncome(
-        @Param(
-            'conductorId',
-            ParseIntPipe,
-        )
-        conductorId: number,
+    @Get('total-income')
+    async getTotalIncome(
+        @Query('id') id: string,
+        @Query('type') type: 'driver' | 'conductor',
     ) {
-        const data =
-            await this.assignmentsService
-                .getConductorTotalIncome(
-                    conductorId,
-                );
+        if (!id) throw new BadRequestException('Parameter query "id" wajib diisi.');
+        if (!['driver', 'conductor'].includes(type)) {
+            throw new BadRequestException('Parameter "type" harus berupa driver atau conductor.');
+        }
+
+        const data = await this.assignmentsService.getEmployeeTotalIncome(Number(id), type);
 
         return {
-            message: `Berhasil mengambil total pendapatan kondektur ID ${conductorId}.`,
+            message: `Berhasil mengambil total pendapatan ${type} ID ${id}.`,
             data,
         };
     }

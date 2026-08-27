@@ -18,6 +18,12 @@ import { VehicleLocationsService } from './services/vehicle-locations.service';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopInterval } from 'src/routes/entities/stop-interval.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
+import { ScheduleTemplate } from './entities/schedule-template.entity';
+import { MockLiveLocation } from './entities/mock-live-locations.entity';
+import { MockLiveLocationController } from './controllers/mock-live-locations.controller';
+import { MockLiveLocationService } from './services/mock-live-location.service';
+import { ScheduleTemplateController } from './controllers/schedule-template.controller';
+import { ScheduleTemplateService } from './services/schedule-template.service';
 
 @Module({
   imports: [
@@ -31,7 +37,9 @@ import { Payment } from 'src/payments/entities/payment.entity';
       Route,
       RouteStop,
       StopInterval,
-      Payment
+      Payment,
+      ScheduleTemplate,
+      MockLiveLocation,
     ])
   ],
   controllers: [
@@ -39,12 +47,16 @@ import { Payment } from 'src/payments/entities/payment.entity';
     VehicleAssignmentsController,
     VehicleLocationsController,
     VehicleServicesController,
+    MockLiveLocationController,
+    ScheduleTemplateController,
   ],
   providers: [
     VehiclesService,
     VehicleAssignmentsService,
     VehicleLocationsService,
     VehicleServicesService,
+    MockLiveLocationService,
+    ScheduleTemplateService,
   ],
   exports: [
     VehiclesService,
