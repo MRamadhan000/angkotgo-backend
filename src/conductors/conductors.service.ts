@@ -64,12 +64,20 @@ export class ConductorsService {
 
     return result;
   }
-  async findAll(): Promise<Conductor[]> {
-    return await this.conductorRepository.find({
-      order: {
-        name: 'ASC',
-      },
-    });
+
+  async findAll() {
+    const { entities, raw } = await this.conductorRepository
+      .createQueryBuilder('conductor')
+      .leftJoin('conductor.assignments', 'assignment')
+      .addSelect('COUNT(assignment.id)', 'assignmentCount')
+      .groupBy('conductor.id')
+      .orderBy('conductor.name', 'ASC')
+      .getRawAndEntities();
+
+    return entities.map((conductor, index) => ({
+      ...conductor,
+      assignmentCount: Number(raw[index].assignmentCount),
+    }));
   }
 
   async findOne(id: number): Promise<Conductor> {

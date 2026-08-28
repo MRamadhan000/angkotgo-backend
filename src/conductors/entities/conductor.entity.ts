@@ -52,7 +52,7 @@ export class Conductor {
   status!: ConductorStatus;
 
   @Column({ type: 'int', default: 0, name: 'total_trips' })
-  totalTrips!: number;
+  assignmentCount?: number;
 
   // Relasi balik ke penugasan kendaraan
   @OneToMany(() => VehicleAssignment, (assignment) => assignment.conductor)
