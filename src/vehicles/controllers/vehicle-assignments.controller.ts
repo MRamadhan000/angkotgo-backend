@@ -110,6 +110,25 @@ export class VehicleAssignmentsController {
         };
     }
 
+    @Get('date')
+    async getAssignmentsByDate(
+        @Query('date') date: string,
+    ) {
+        if (!date) {
+            throw new BadRequestException(
+                'Parameter query "date" wajib diisi.',
+            );
+        }
+
+        const data =
+            await this.assignmentsService.getAssignmentsByDate(date);
+
+        return {
+            message: `Berhasil mengambil seluruh penugasan kendaraan untuk tanggal ${date}.`,
+            data,
+        };
+    }
+
     @Get()
     async findAll(
         @Query('vehicleId') vehicleId?: string,

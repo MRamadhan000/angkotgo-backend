@@ -436,4 +436,55 @@ export class VehicleAssignmentsService {
 
         return paymentTotalMap;
     }
+
+    async getAssignmentsByDate(
+        date: string,
+    ): Promise<VehicleAssignment[]> {
+        if (!date) {
+            throw new BadRequestException(
+                'Tanggal wajib diisi dengan format YYYY-MM-DD',
+            );
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            throw new BadRequestException(
+                'Format tanggal harus YYYY-MM-DD',
+            );
+        }
+        const assignments = await this.assignmentRepository
+            .createQueryBuilder('assignment')
+
+            // Route
+            .leftJoinAndSelect(
+                'assignment.route',
+                'route',
+            )
+
+            // Ambil hanya location terakhir
+            .leftJoinAndMapOne(
+                'assignment.locations',
+                'VehicleLocation',
+                'location',
+                `
+                location.vehicle_assignment_id = assignment.id
+                AND location.created_at = (
+                    SELECT MAX(location2.created_at)
+                    FROM vehicle_locations location2
+                    WHERE location2.vehicle_assignment_id = assignment.id
+                )
+            `,
+            )
+            .where(
+                'assignment.assignmentDate = :date',
+                { date },
+            )
+
+            .orderBy(
+                'assignment.startTime',
+                'ASC',
+            )
+
+            .getMany();
+
+        return assignments;
+    }
 }
