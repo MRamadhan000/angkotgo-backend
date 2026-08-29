@@ -361,11 +361,35 @@ export class VehicleAssignmentsService {
             );
         }
 
+        if (role === 'driver') {
+            const driver = await this.driverRepository.findOne({
+                where: { id },
+            });
+
+            if (!driver) {
+                throw new NotFoundException(
+                    `Driver dengan ID ${id} tidak ditemukan`,
+                );
+            }
+        } else {
+            const conductor = await this.conductorRepository.findOne({
+                where: { id },
+            });
+
+            if (!conductor) {
+                throw new NotFoundException(
+                    `Conductor dengan ID ${id} tidak ditemukan`,
+                );
+            }
+        }
+
+        // 3. Tentukan kolom berdasarkan role
         const column =
             role === 'driver'
                 ? 'assignment.driver_id'
                 : 'assignment.conductor_id';
 
+        // 4. Hitung income
         const result = await this.paymentRepository
             .createQueryBuilder('payment')
             .innerJoin(
