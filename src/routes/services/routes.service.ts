@@ -118,12 +118,9 @@ export class RoutesService {
     return await this.routeRepository.save(route);
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: number): Promise<void> {
     const route = await this.findOne(id);
-
-    await this.routeRepository.remove(route);
-
-    return { message: `Trayek dengan ID ${id} berhasil dihapus.` };
+    await this.routeRepository.softRemove(route);
   }
 
   async findAvailableRoutesForJourney(
@@ -406,16 +403,16 @@ export class RoutesService {
   }
 
 
-    /**
-   * Cari angkot di suatu rute+arah yang BELUM melewati titik penjemputan user.
-   * Pendekatan: proyeksikan user & posisi GPS terakhir tiap kendaraan ke garis
-   * rute (ST_LineLocatePoint) -> dapat "posisi sepanjang rute" (0..1) yang bisa
-   * dibandingkan langsung. Lebih akurat dari sekadar cocokkan sequence_order
-   * terdekat, karena posisi riil bisa berada di antara dua titik path.
-   *
-   * Tidak pakai ORS di sini karena kendaraan terikat pada jalur rute yang
-   * sudah pasti (bukan jalan bebas kayak pejalan kaki di findAvailableRoutesForJourney).
-   */
+  /**
+ * Cari angkot di suatu rute+arah yang BELUM melewati titik penjemputan user.
+ * Pendekatan: proyeksikan user & posisi GPS terakhir tiap kendaraan ke garis
+ * rute (ST_LineLocatePoint) -> dapat "posisi sepanjang rute" (0..1) yang bisa
+ * dibandingkan langsung. Lebih akurat dari sekadar cocokkan sequence_order
+ * terdekat, karena posisi riil bisa berada di antara dua titik path.
+ *
+ * Tidak pakai ORS di sini karena kendaraan terikat pada jalur rute yang
+ * sudah pasti (bukan jalan bebas kayak pejalan kaki di findAvailableRoutesForJourney).
+ */
   async findUpcomingVehiclesForUser(
     routeId: number,
     direction: DirectionType,
@@ -432,14 +429,14 @@ export class RoutesService {
     const metricSrid = options.metricSrid ?? 3857;
     const activeStatuses = options.activeStatuses ?? ['SCHEDULED', 'ONGOING'];
 
-  console.log('=== FIND UPCOMING VEHICLES ===');
-  console.log('routeId:', routeId);
-  console.log('direction:', direction);
-  console.log('userLat:', userLat);
-  console.log('userLng:', userLng);
-  console.log('options:', options);
+    console.log('=== FIND UPCOMING VEHICLES ===');
+    console.log('routeId:', routeId);
+    console.log('direction:', direction);
+    console.log('userLat:', userLat);
+    console.log('userLng:', userLng);
+    console.log('options:', options);
 
-         const query = `
+    const query = `
       WITH route_line AS (
         SELECT
           ST_Transform(ST_MakeLine(geom::geometry ORDER BY sequence_order), $5::integer) AS line   -- ⬅️

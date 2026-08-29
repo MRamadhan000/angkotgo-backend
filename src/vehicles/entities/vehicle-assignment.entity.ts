@@ -14,6 +14,7 @@ import { Route } from 'src/routes/entities/route.entity';
 import { Driver } from 'src/drivers/entities/driver.entity';
 import { Conductor } from 'src/conductors/entities/conductor.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
+import { VehicleLocation } from './vehicle-location.entity';
 
 @Entity('vehicle_assignments')
 export class VehicleAssignment {
@@ -80,6 +81,12 @@ export class VehicleAssignment {
         (payment) => payment.vehicleAssignment,
     )
     payments!: Payment[];
+
+    @OneToMany(
+        () => VehicleLocation,
+        (location) => location.vehicleAssignment,
+    )
+    locations!: VehicleLocation[];
 
     @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
     createdAt!: Date;

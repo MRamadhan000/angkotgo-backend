@@ -66,6 +66,28 @@ export class VehicleServicesService {
         return serviceRecord;
     }
 
+    async findByVehicleId(vehicleId: number): Promise<VehicleService[]> {
+        const vehicle = await this.vehicleRepository.findOne({
+            where: { id: vehicleId },
+        });
+
+        if (!vehicle) {
+            throw new NotFoundException(
+                `Kendaraan dengan ID ${vehicleId} tidak ditemukan.`,
+            );
+        }
+
+        return await this.vehicleServiceRepository.find({
+            where: { vehicleId },
+            relations: {
+                vehicle: true,
+            },
+            order: {
+                serviceDate: 'DESC',
+            },
+        });
+    }
+
     async update(id: number, updateDto: UpdateVehicleServiceDto): Promise<VehicleService> {
         const serviceRecord = await this.findOne(id);
 

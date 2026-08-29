@@ -1,14 +1,19 @@
-import { 
-    Entity, 
-    PrimaryGeneratedColumn, 
-    Column, 
-    BeforeInsert, 
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    BeforeInsert,
     BeforeUpdate,
-    ManyToOne, 
-    JoinColumn 
+    ManyToOne,
+    JoinColumn
 } from 'typeorm';
 import { DirectionType } from '../enums/route.enum';
 import { Route } from './route.entity';
+
+interface GeoJSONPoint {
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
+}
 
 @Entity('route_stops')
 export class RouteStop {
@@ -53,24 +58,29 @@ export class RouteStop {
     @Column({ type: 'int', name: 'stop_order' })
     stopOrder!: number; // Urutan halte ke-1, ke-2, dst.
 
-    // Opsional: Kolom geom PostGIS untuk titik halte
     @Column({
         type: 'geography',
         spatialFeatureType: 'Point',
         srid: 4326,
         nullable: true,
         transformer: {
-            to: (value: any) => value,
-            from: (value: any) => value,
-        }
+            to: (value: GeoJSONPoint | null) => value,
+            from: (value: GeoJSONPoint | null) => value,
+        },
     })
-    geom!: string;
+    geom!: GeoJSONPoint | null;
 
     @BeforeInsert()
     @BeforeUpdate()
-    generateGeom() {
-        if (this.latitude !== undefined && this.longitude !== undefined) {
-            this.geom = `SRID=4326;POINT(${this.longitude} ${this.latitude})` as any;
+    setGeomFromLatLng(): void {
+        if (this.latitude != null && this.longitude != null) {
+            this.geom = {
+                type: 'Point',
+                coordinates: [
+                    Number(this.longitude),
+                    Number(this.latitude),
+                ],
+            };
         }
     }
 }

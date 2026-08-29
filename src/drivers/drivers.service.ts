@@ -18,8 +18,19 @@ export class DriversService {
     private readonly driverRepository: Repository<Driver>,
   ) { }
 
-  async findAll(): Promise<Driver[]> {
-    return await this.driverRepository.find();
+  async findAll() {
+    const { entities, raw } = await this.driverRepository
+      .createQueryBuilder('driver')
+      .leftJoin('driver.assignments', 'assignment')
+      .addSelect('COUNT(assignment.id)', 'assignmentCount')
+      .groupBy('driver.id')
+      .orderBy('driver.name', 'ASC')
+      .getRawAndEntities();
+
+    return entities.map((driver, index) => ({
+      ...driver,
+      assignmentCount: Number(raw[index].assignmentCount),
+    }));
   }
 
   async findOne(id: number): Promise<Driver> {

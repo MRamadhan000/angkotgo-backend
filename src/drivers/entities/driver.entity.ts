@@ -66,9 +66,9 @@ export class Driver {
   })
   averageRating!: number;
 
-  @Column({ type: 'int', default: 0, name: 'total_trips' })
-  totalTrips!: number;
-
+  @Column({ type: 'int', default: 0, name: 'assignmentCount' })
+  assignmentCount?: number;
+  
   @Column({ type: 'json', nullable: true, name: 'bank_account_info' })
   bankAccountInfo?: {
     bankName: string;
