@@ -5,49 +5,40 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  DeleteDateColumn
 } from 'typeorm';
-import { RoutePoint } from './route-point.entity';
+import { RoutePath } from './route-path.entity';
 import { RouteStop } from './route-stop.entity';
-
-export enum RouteDirection {
-  GO = 'GO',
-  RETURN = 'RETURN',
-}
+import { StopInterval } from './stop-interval.entity';
 
 @Entity('routes')
 export class Route {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'varchar', length: 10 })
-  code!: string;
+  @Column({ type: 'varchar', length: 10, unique: true, name: 'route_code' })
+  routeCode!: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  name!: string;
+  @Column({ type: 'varchar', length: 100, name: 'route_name' })
+  routeName!: string;
 
-  @Column({
-    type: 'enum',
-    enum: RouteDirection,
+  @OneToMany(() => RoutePath, (routePath) => routePath.route, {
+    cascade: true,
+    onDelete: 'CASCADE'
   })
-  direction!: RouteDirection;
+  routePaths!: RoutePath[];
 
-  @Column({ type: 'varchar', length: 7, nullable: true })
-  color?: string;
-
-  @Column({
-    type: 'decimal',
-    precision: 5,
-    scale: 2,
-    name: 'distance_km',
-    nullable: true,
+  @OneToMany(() => RouteStop, (routeStop) => routeStop.route, {
+    cascade: true,
+    onDelete: 'CASCADE'
   })
-  distanceKm?: number;
+  routeStops!: RouteStop[];
 
-  @Column({ type: 'int', name: 'estimated_duration_minutes', nullable: true })
-  estimatedDurationMinutes?: number;
-
-  @Column({ type: 'boolean', name: 'is_active', default: true })
-  isActive!: boolean;
+  @OneToMany(() => StopInterval, (stopInterval) => stopInterval.route, {
+    cascade: true,
+    onDelete: 'CASCADE'
+  })
+  stopIntervals!: StopInterval[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
@@ -55,11 +46,10 @@ export class Route {
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt!: Date;
 
-  @OneToMany(() => RoutePoint, (routePoint) => routePoint.route, {
-    cascade: true,
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamp',
+    nullable: true,
   })
-  points!: RoutePoint[];
-
-  @OneToMany(() => RouteStop, (routeStop) => routeStop.route, { cascade: true })
-  stops!: RouteStop[];
+  deletedAt?: Date;
 }

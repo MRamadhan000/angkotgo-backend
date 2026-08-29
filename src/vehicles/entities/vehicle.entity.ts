@@ -1,16 +1,15 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  CreateDateColumn, 
-  UpdateDateColumn 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn
 } from 'typeorm';
-
-export enum VehicleStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  MAINTENANCE = 'MAINTENANCE',
-}
+import { VehicleAssignment } from './vehicle-assignment.entity';
+import { VehicleService } from './vehicle-service.entity';
+import { VehicleStatus, VehicleType } from '../enum/vehicle.enum';
 
 @Entity('vehicles')
 export class Vehicle {
@@ -26,6 +25,16 @@ export class Vehicle {
   @Column({ type: 'int', default: 0 })
   capacity!: number;
 
+  @Column({ type: 'int', default: 0, name: 'current_odometer' })
+  currentOdometer!: number;
+
+  @Column({
+    type: 'enum',
+    enum: VehicleType,
+    default: VehicleType.REGULER,
+  })
+  type!: VehicleType;
+
   @Column({
     type: 'enum',
     enum: VehicleStatus,
@@ -33,9 +42,22 @@ export class Vehicle {
   })
   status!: VehicleStatus;
 
+  @OneToMany(() => VehicleAssignment, (assignment) => assignment.vehicle)
+  assignments!: VehicleAssignment[];
+
+  @OneToMany(() => VehicleService, (service) => service.vehicle)
+  services!: VehicleService[];
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt!: Date;
+
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  deletedAt?: Date;
 }

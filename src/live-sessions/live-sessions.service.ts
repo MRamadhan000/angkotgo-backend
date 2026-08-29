@@ -1,297 +1,297 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Any, Repository } from 'typeorm';
-import { LiveSession, SessionStatus } from './entities/live-session.entity';
-import { LiveLocation } from './entities/live-location.entity';
-import { CreateLiveSessionDto } from './dto/create-live-session.dto';
-import { AddLiveLocationDto } from './dto/add-live-location.dto';
-import { RouteStop } from 'src/routes/entities/route-stop.entity';
-import { Trip } from 'src/trips/entities/trip.entity';
-import { UpdateLiveSessionDto } from './dto/update-live-session.dto';
-import { RouteDirection } from 'src/routes/entities/route.entity';
+// import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+// import { InjectRepository } from '@nestjs/typeorm';
+// import { Any, Repository } from 'typeorm';
+// import { LiveSession, SessionStatus } from './entities/live-session.entity';
+// import { LiveLocation } from './entities/live-location.entity';
+// import { CreateLiveSessionDto } from './dto/create-live-session.dto';
+// import { AddLiveLocationDto } from './dto/add-live-location.dto';
+// import { RouteStop } from 'src/routes/entities/route-stop.entity';
+// import { Trip } from 'src/trips/entities/trip.entity';
+// import { UpdateLiveSessionDto } from './dto/update-live-session.dto';
+// import { RouteDirection } from 'src/routes/entities/route.entity';
 
-@Injectable()
-export class LiveSessionsService {
-  constructor(
-    @InjectRepository(LiveSession)
-    private readonly sessionRepository: Repository<LiveSession>,
+// @Injectable()
+// export class LiveSessionsService {
+//   constructor(
+//     @InjectRepository(LiveSession)
+//     private readonly sessionRepository: Repository<LiveSession>,
 
-    @InjectRepository(LiveLocation)
-    private readonly locationRepository: Repository<LiveLocation>,
+//     @InjectRepository(LiveLocation)
+//     private readonly locationRepository: Repository<LiveLocation>,
 
-    @InjectRepository(RouteStop)
-    private readonly routeStopRepository: Repository<RouteStop>,
+//     @InjectRepository(RouteStop)
+//     private readonly routeStopRepository: Repository<RouteStop>,
 
-    @InjectRepository(Trip)
-    private readonly tripRepository: Repository<Trip>,
-  ) { }
+//     @InjectRepository(Trip)
+//     private readonly tripRepository: Repository<Trip>,
+//   ) { }
 
-  // 1. Start Sesi Live Baru
-  // live-sessions.service.ts
+//   // 1. Start Sesi Live Baru
+//   // live-sessions.service.ts
 
-  async create(createDto: CreateLiveSessionDto) {
-    // 1. Validasi: Cek apakah Trip ada di database
-    const trip = await this.tripRepository.findOneBy({
-      id: createDto.tripId,
-    });
+//   async create(createDto: CreateLiveSessionDto) {
+//     // 1. Validasi: Cek apakah Trip ada di database
+//     const trip = await this.tripRepository.findOneBy({
+//       id: createDto.tripId,
+//     });
 
-    if (!trip) {
-      throw new NotFoundException('Trip tidak ditemukan');
-    }
+//     if (!trip) {
+//       throw new NotFoundException('Trip tidak ditemukan');
+//     }
 
-    // 2. Validasi Tambahan: Cek apakah Trip ini SUDAH MEMILIKI sesi yang masih AKTIF
-    const activeSession = await this.sessionRepository.findOne({
-      where: {
-        trip: { id: createDto.tripId },
-      },
-    });
+//     // 2. Validasi Tambahan: Cek apakah Trip ini SUDAH MEMILIKI sesi yang masih AKTIF
+//     const activeSession = await this.sessionRepository.findOne({
+//       where: {
+//         trip: { id: createDto.tripId },
+//       },
+//     });
 
-    if (activeSession) {
-      throw new ConflictException(`Trip dengan ID ${createDto.tripId} sudah memiliki live session yang aktif.`);
-    }
+//     if (activeSession) {
+//       throw new ConflictException(`Trip dengan ID ${createDto.tripId} sudah memiliki live session yang aktif.`);
+//     }
 
-    // 3. Ambil data halte (jika dikirim oleh client)
-    const currentStop = createDto.currentStopId
-      ? (await this.routeStopRepository.findOneBy({ id: createDto.currentStopId })) ?? undefined
-      : undefined;
+//     // 3. Ambil data halte (jika dikirim oleh client)
+//     const currentStop = createDto.currentStopId
+//       ? (await this.routeStopRepository.findOneBy({ id: createDto.currentStopId })) ?? undefined
+//       : undefined;
 
-    const nextStop = createDto.nextStopId
-      ? (await this.routeStopRepository.findOneBy({ id: createDto.nextStopId })) ?? undefined
-      : undefined;
+//     const nextStop = createDto.nextStopId
+//       ? (await this.routeStopRepository.findOneBy({ id: createDto.nextStopId })) ?? undefined
+//       : undefined;
 
-    // 4. Strukturkan data untuk disimpan
-    const sessionData: Partial<LiveSession> = {
-      status: createDto.status ?? SessionStatus.ACTIVE, // Default ke ACTIVE jika kosong
-      currentSequence: createDto.currentSequence,
-      nextSequence: createDto.nextSequence,
-      isAtStop: createDto.isAtStop ?? false,
-      trip: trip,
-      currentStop: currentStop,
-      nextStop: nextStop,
-    };
+//     // 4. Strukturkan data untuk disimpan
+//     const sessionData: Partial<LiveSession> = {
+//       status: createDto.status ?? SessionStatus.ACTIVE, // Default ke ACTIVE jika kosong
+//       currentSequence: createDto.currentSequence,
+//       nextSequence: createDto.nextSequence,
+//       isAtStop: createDto.isAtStop ?? false,
+//       trip: trip,
+//       currentStop: currentStop,
+//       nextStop: nextStop,
+//     };
 
-    const session = this.sessionRepository.create(sessionData);
-    return await this.sessionRepository.save(session);
-  }
+//     const session = this.sessionRepository.create(sessionData);
+//     return await this.sessionRepository.save(session);
+//   }
 
-  // 2. Push Koordinat GPS baru ke dalam Sesi yang sedang berjalan
-  async addLocation(sessionId: number, addLiveLocationDto: AddLiveLocationDto): Promise<LiveLocation> {
-    const session = await this.sessionRepository.findOne({ where: { id: sessionId } });
-    if (!session) {
-      throw new NotFoundException(`Live Session dengan ID ${sessionId} tidak aktif/ditemukan`);
-    }
+//   // 2. Push Koordinat GPS baru ke dalam Sesi yang sedang berjalan
+//   async addLocation(sessionId: number, addLiveLocationDto: AddLiveLocationDto): Promise<LiveLocation> {
+//     const session = await this.sessionRepository.findOne({ where: { id: sessionId } });
+//     if (!session) {
+//       throw new NotFoundException(`Live Session dengan ID ${sessionId} tidak aktif/ditemukan`);
+//     }
 
-    const newLocation = this.locationRepository.create({
-      ...addLiveLocationDto,
-      session: session,
-    });
+//     const newLocation = this.locationRepository.create({
+//       ...addLiveLocationDto,
+//       session: session,
+//     });
 
-    return await this.locationRepository.save(newLocation);
-  }
+//     return await this.locationRepository.save(newLocation);
+//   }
 
-  async findAll() {
-    const sessions = await this.sessionRepository
-      .createQueryBuilder('session')
-      .leftJoinAndSelect('session.trip', 'trip')
-      .leftJoinAndSelect('trip.route', 'route')
-      .leftJoinAndSelect('trip.schedule', 'schedule')
-      .leftJoinAndSelect('schedule.driver', 'driver')
-      .leftJoinAndSelect('schedule.vehicle', 'vehicle')
-      .leftJoinAndSelect('session.locations', 'location')
-      .orderBy('location.created_at', 'DESC')
-      .getMany();
+//   async findAll() {
+//     const sessions = await this.sessionRepository
+//       .createQueryBuilder('session')
+//       .leftJoinAndSelect('session.trip', 'trip')
+//       .leftJoinAndSelect('trip.route', 'route')
+//       .leftJoinAndSelect('trip.schedule', 'schedule')
+//       .leftJoinAndSelect('schedule.driver', 'driver')
+//       .leftJoinAndSelect('schedule.vehicle', 'vehicle')
+//       .leftJoinAndSelect('session.locations', 'location')
+//       .orderBy('location.created_at', 'DESC')
+//       .getMany();
 
-    return sessions;
-  }
+//     return sessions;
+//   }
 
-  // 3. Ambil Detail Sesi beserta Log Seluruh Koordinat GPS-nya
-  async getSessionWithTracking(id: number): Promise<LiveSession> {
-    const session = await this.sessionRepository.findOne({
-      where: { id },
-      relations: { locations: true },
-      order: { locations: { id: 'ASC' } }, // Urut berdasarkan urutan GPS masuk
-    });
+//   // 3. Ambil Detail Sesi beserta Log Seluruh Koordinat GPS-nya
+//   async getSessionWithTracking(id: number): Promise<LiveSession> {
+//     const session = await this.sessionRepository.findOne({
+//       where: { id },
+//       relations: { locations: true },
+//       order: { locations: { id: 'ASC' } }, // Urut berdasarkan urutan GPS masuk
+//     });
 
-    if (!session) throw new NotFoundException(`Sesi tracking ID ${id} tidak ditemukan`);
-    return session;
-  }
+//     if (!session) throw new NotFoundException(`Sesi tracking ID ${id} tidak ditemukan`);
+//     return session;
+//   }
 
-  // 4. Update Status Sesi (Misal merubah ke COMPLETED atau ABANDONED pas driver selesai jalan)
-  async endSession(id: number, status: SessionStatus): Promise<LiveSession> {
-    const session = await this.sessionRepository.findOne({ where: { id } });
-    if (!session) throw new NotFoundException(`Sesi ID ${id} tidak ditemukan`);
+//   // 4. Update Status Sesi (Misal merubah ke COMPLETED atau ABANDONED pas driver selesai jalan)
+//   async endSession(id: number, status: SessionStatus): Promise<LiveSession> {
+//     const session = await this.sessionRepository.findOne({ where: { id } });
+//     if (!session) throw new NotFoundException(`Sesi ID ${id} tidak ditemukan`);
 
-    session.status = status;
-    session.endedAt = new Date();
+//     session.status = status;
+//     session.endedAt = new Date();
 
-    return await this.sessionRepository.save(session);
-  }
+//     return await this.sessionRepository.save(session);
+//   }
 
-  async getSessionByTripId(tripId: number): Promise<LiveSession> {
-    const session = await this.sessionRepository.findOne({
-      where: {
-        trip: {
-          id: tripId,
-        },
-      },
-      relations: {
-        trip: true,
-        currentStop: true,
-        nextStop: true,
-      },
-    });
+//   async getSessionByTripId(tripId: number): Promise<LiveSession> {
+//     const session = await this.sessionRepository.findOne({
+//       where: {
+//         trip: {
+//           id: tripId,
+//         },
+//       },
+//       relations: {
+//         trip: true,
+//         currentStop: true,
+//         nextStop: true,
+//       },
+//     });
 
-    if (!session) {
-      throw new NotFoundException(
-        `Live session untuk trip ${tripId} tidak ditemukan`,
-      );
-    }
+//     if (!session) {
+//       throw new NotFoundException(
+//         `Live session untuk trip ${tripId} tidak ditemukan`,
+//       );
+//     }
 
-    return session;
-  }
+//     return session;
+//   }
 
-  async update(
-    id: number,
-    dto: UpdateLiveSessionDto,
-  ): Promise<LiveSession> {
-    const session = await this.sessionRepository.findOne({
-      where: { id },
-      relations: {
-        currentStop: true,
-        nextStop: true,
-        trip: true,
-      },
-    });
+//   async update(
+//     id: number,
+//     dto: UpdateLiveSessionDto,
+//   ): Promise<LiveSession> {
+//     const session = await this.sessionRepository.findOne({
+//       where: { id },
+//       relations: {
+//         currentStop: true,
+//         nextStop: true,
+//         trip: true,
+//       },
+//     });
 
-    if (!session) {
-      throw new NotFoundException('Live session tidak ditemukan');
-    }
+//     if (!session) {
+//       throw new NotFoundException('Live session tidak ditemukan');
+//     }
 
-    if (dto.currentStopId) {
-      const currentStop = await this.routeStopRepository.findOneBy({
-        id: dto.currentStopId,
-      });
+//     if (dto.currentStopId) {
+//       const currentStop = await this.routeStopRepository.findOneBy({
+//         id: dto.currentStopId,
+//       });
 
-      if (!currentStop) {
-        throw new NotFoundException('Current stop tidak ditemukan');
-      }
+//       if (!currentStop) {
+//         throw new NotFoundException('Current stop tidak ditemukan');
+//       }
 
-      session.currentStop = currentStop;
-    }
+//       session.currentStop = currentStop;
+//     }
 
-    if (dto.nextStopId) {
-      const nextStop = await this.routeStopRepository.findOneBy({
-        id: dto.nextStopId,
-      });
+//     if (dto.nextStopId) {
+//       const nextStop = await this.routeStopRepository.findOneBy({
+//         id: dto.nextStopId,
+//       });
 
-      if (!nextStop) {
-        throw new NotFoundException('Next stop tidak ditemukan');
-      }
+//       if (!nextStop) {
+//         throw new NotFoundException('Next stop tidak ditemukan');
+//       }
 
-      session.nextStop = nextStop;
-    }
+//       session.nextStop = nextStop;
+//     }
 
-    if (dto.currentSequence !== undefined) {
-      session.currentSequence = dto.currentSequence;
-    }
+//     if (dto.currentSequence !== undefined) {
+//       session.currentSequence = dto.currentSequence;
+//     }
 
-    if (dto.nextSequence !== undefined) {
-      session.nextSequence = dto.nextSequence;
-    }
+//     if (dto.nextSequence !== undefined) {
+//       session.nextSequence = dto.nextSequence;
+//     }
 
-    if (dto.isAtStop !== undefined) {
-      session.isAtStop = dto.isAtStop;
-    }
+//     if (dto.isAtStop !== undefined) {
+//       session.isAtStop = dto.isAtStop;
+//     }
 
-    if (dto.status) {
-      session.status = dto.status;
-    }
+//     if (dto.status) {
+//       session.status = dto.status;
+//     }
 
-    return await this.sessionRepository.save(session);
-  }
+//     return await this.sessionRepository.save(session);
+//   }
 
-  async updateStopStatus(
-    sessionId: number,
-    isAtStop: boolean,
-  ): Promise<LiveSession> {
-    const session = await this.sessionRepository.findOne({
-      where: { id: sessionId },
-    });
+//   async updateStopStatus(
+//     sessionId: number,
+//     isAtStop: boolean,
+//   ): Promise<LiveSession> {
+//     const session = await this.sessionRepository.findOne({
+//       where: { id: sessionId },
+//     });
 
-    if (!session) {
-      throw new NotFoundException('Live session tidak ditemukan');
-    }
+//     if (!session) {
+//       throw new NotFoundException('Live session tidak ditemukan');
+//     }
 
-    session.isAtStop = isAtStop;
+//     session.isAtStop = isAtStop;
 
-    return await this.sessionRepository.save(session);
-  }
+//     return await this.sessionRepository.save(session);
+//   }
 
 
-  async getActiveAngkotByCode(routeCode: string, direction: RouteDirection) {
-    const sessions = await this.sessionRepository.createQueryBuilder('session')
-      // 1. Join ke Trip dan Route
-      .innerJoinAndSelect('session.trip', 'trip')
-      .innerJoinAndSelect('trip.route', 'route')
+//   async getActiveAngkotByCode(routeCode: string, direction: RouteDirection) {
+//     const sessions = await this.sessionRepository.createQueryBuilder('session')
+//       // 1. Join ke Trip dan Route
+//       .innerJoinAndSelect('session.trip', 'trip')
+//       .innerJoinAndSelect('trip.route', 'route')
 
-      // 2. Join ke Schedule untuk mendapatkan Driver dan Vehicle
-      .innerJoinAndSelect('trip.schedule', 'schedule')
-      .leftJoinAndSelect('schedule.driver', 'driver')
-      .leftJoinAndSelect('schedule.vehicle', 'vehicle')
+//       // 2. Join ke Schedule untuk mendapatkan Driver dan Vehicle
+//       .innerJoinAndSelect('trip.schedule', 'schedule')
+//       .leftJoinAndSelect('schedule.driver', 'driver')
+//       .leftJoinAndSelect('schedule.vehicle', 'vehicle')
 
-      // 3. Join Halte & Lokasi
-      .leftJoinAndSelect('session.currentStop', 'currentStop')
-      .leftJoinAndSelect('session.nextStop', 'nextStop')
-      .leftJoinAndSelect('session.locations', 'location')
+//       // 3. Join Halte & Lokasi
+//       .leftJoinAndSelect('session.currentStop', 'currentStop')
+//       .leftJoinAndSelect('session.nextStop', 'nextStop')
+//       .leftJoinAndSelect('session.locations', 'location')
 
-      // 4. Filter berdasarkan Status Active, Kode Trayek, dan Arah (Direction)
-      .where('session.status = :status', { status: SessionStatus.ACTIVE })
-      .andWhere('route.code = :routeCode', { routeCode })
-      .andWhere('route.direction = :direction', { direction }) // Filter baru untuk GO / RETURN
-      .getMany();
+//       // 4. Filter berdasarkan Status Active, Kode Trayek, dan Arah (Direction)
+//       .where('session.status = :status', { status: SessionStatus.ACTIVE })
+//       .andWhere('route.code = :routeCode', { routeCode })
+//       .andWhere('route.direction = :direction', { direction }) // Filter baru untuk GO / RETURN
+//       .getMany();
 
-    // 5. Mapping Response
-    return sessions.map(session => {
-      // Menyortir lokasi berdasarkan ID terbesar untuk memastikan data paling baru berada di indeks pertama
-      const sortedLocations = session.locations && session.locations.length > 0
-        ? [...session.locations].sort((a, b) => Number(b.id) - Number(a.id))
-        : [];
+//     // 5. Mapping Response
+//     return sessions.map(session => {
+//       // Menyortir lokasi berdasarkan ID terbesar untuk memastikan data paling baru berada di indeks pertama
+//       const sortedLocations = session.locations && session.locations.length > 0
+//         ? [...session.locations].sort((a, b) => Number(b.id) - Number(a.id))
+//         : [];
 
-      return {
-        id: session.id,
-        status: session.status,
-        isAtStop: session.isAtStop,
-        currentSequence: session.currentSequence,
-        nextSequence: session.nextSequence,
-        startedAt: session.startedAt,
-        trip: {
-          id: session.trip.id,
-          tripNumber: session.trip.tripNumber,
-          plannedDeparture: session.trip.plannedDeparture,
-          plannedArrival: session.trip.plannedArrival,
-        },
-        route: {
-          id: session.trip.route.id,
-          code: session.trip.route.code,
-          name: session.trip.route.name,
-          direction: session.trip.route.direction,
-          color: session.trip.route.color,
-        },
-        driver: session.trip.schedule?.driver ? {
-          id: session.trip.schedule.driver.id,
-          name: session.trip.schedule.driver.name,
-        } : null,
-        vehicle: session.trip.schedule?.vehicle ? {
-          id: session.trip.schedule.vehicle.id,
-          plateNumber: session.trip.schedule.vehicle.plateNumber,
-          capacity: session.trip.schedule.vehicle.capacity,
-        } : null,
-        currentStop: session.currentStop,
-        nextStop: session.nextStop,
-        latestLocation: sortedLocations[0] || null,
-      };
-    });
-  }
+//       return {
+//         id: session.id,
+//         status: session.status,
+//         isAtStop: session.isAtStop,
+//         currentSequence: session.currentSequence,
+//         nextSequence: session.nextSequence,
+//         startedAt: session.startedAt,
+//         trip: {
+//           id: session.trip.id,
+//           tripNumber: session.trip.tripNumber,
+//           plannedDeparture: session.trip.plannedDeparture,
+//           plannedArrival: session.trip.plannedArrival,
+//         },
+//         route: {
+//           id: session.trip.route.id,
+//           code: session.trip.route.code,
+//           name: session.trip.route.name,
+//           direction: session.trip.route.direction,
+//           color: session.trip.route.color,
+//         },
+//         driver: session.trip.schedule?.driver ? {
+//           id: session.trip.schedule.driver.id,
+//           name: session.trip.schedule.driver.name,
+//         } : null,
+//         vehicle: session.trip.schedule?.vehicle ? {
+//           id: session.trip.schedule.vehicle.id,
+//           plateNumber: session.trip.schedule.vehicle.plateNumber,
+//           capacity: session.trip.schedule.vehicle.capacity,
+//         } : null,
+//         currentStop: session.currentStop,
+//         nextStop: session.nextStop,
+//         latestLocation: sortedLocations[0] || null,
+//       };
+//     });
+//   }
 
-}
+// }
 

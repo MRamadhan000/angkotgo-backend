@@ -946,6 +946,217 @@ Status : `200 OK`
 }
 ```
 
+
+# Bookings API
+
+## 1.Get All Bookings Data
+
+### Request
+
+```http
+GET http://localhost:3000/bookings
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+[
+    {
+        "id": 1,
+        "bookingCode": "ANGKOT-663476-S87A7",
+        "userId": 1,
+        "vehicleAssignmentId": 3,
+        "passengerCount": 2,
+        "totalAmount": "0.00",
+        "status": "pending",
+        "paymentMethod": null,
+        "validUntil": null,
+        "createdAt": "2026-08-07T03:14:22.321Z",
+        "updatedAt": "2026-08-07T03:14:22.321Z"
+    },
+    {
+        "id": 2,
+        "bookingCode": "ANGKOT-289483-HUVKL",
+        "userId": 1,
+        "vehicleAssignmentId": 3,
+        "passengerCount": 2,
+        "totalAmount": "0.00",
+        "status": "pending",
+        "paymentMethod": null,
+        "validUntil": null,
+        "createdAt": "2026-08-07T04:48:09.087Z",
+        "updatedAt": "2026-08-07T04:48:09.087Z"
+    },
+    {
+        "id": 6,
+        "bookingCode": "ANGKOT-501300-G1RJ9",
+        "userId": 1,
+        "vehicleAssignmentId": 3,
+        "passengerCount": 2,
+        "totalAmount": "10000.00",
+        "status": "cancelled",
+        "paymentMethod": "QRIS",
+        "validUntil": "2026-08-07T23:30:00.000Z",
+        "createdAt": "2026-08-07T05:08:20.476Z",
+        "updatedAt": "2026-08-07T05:52:04.237Z"
+    },
+    {
+        "id": 8,
+        "bookingCode": "ANGKOT-191592-6EV43",
+        "userId": 1,
+        "vehicleAssignmentId": 6,
+        "passengerCount": 2,
+        "totalAmount": "10000.00",
+        "status": "cancelled",
+        "paymentMethod": "QRIS",
+        "validUntil": "2026-08-08T02:00:00.000Z",
+        "createdAt": "2026-08-07T05:53:10.298Z",
+        "updatedAt": "2026-08-07T05:53:37.566Z"
+    }
+]
+```
+
+---
+
+## 2.Get Booking By ID
+
+### Request
+
+```http
+GET http://localhost:3000/bookings/{id}
+```
+
+### Response
+
+Status : `200 OK`
+
+```json
+{
+    "id": 10,
+    "bookingCode": "ANGKOT-616326-OAHRZ",
+    "userId": 1,
+    "vehicleAssignmentId": 6,
+    "passengerCount": 2,
+    "totalAmount": "10000.00",
+    "status": "pending",
+    "paymentMethod": "QRIS",
+    "validUntil": "2026-08-08T02:00:00.000Z",
+    "createdAt": "2026-08-07T06:00:13.301Z",
+    "updatedAt": "2026-08-07T06:00:13.301Z"
+}
+```
+
+---
+
+## 3.Create Driver
+
+### Request
+
+```http
+POST http://localhost:3000/bookings
+```
+
+Body
+
+```json
+{
+    "userId": 1,
+    "vehicleAssignmentId": 6,
+    "passengerCount": 2,
+    "paymentMethod" : "QRIS"
+  }
+```
+
+### Response
+
+Status : `201 Created`
+
+```json
+{
+    "id": 10,
+    "bookingCode": "ANGKOT-616326-OAHRZ",
+    "userId": 1,
+    "user": {
+        "id": 1,
+        "email": "budi.santoso@example.com",
+        "name": "Budi Santoso",
+        "nik": "3507011205900001",
+        "phone": "081234567890",
+        "createdAt": "2026-08-07T02:53:50.918Z",
+        "updated_at": "2026-08-07T02:53:50.918Z"
+    },
+    "vehicleAssignmentId": 6,
+    "vehicleAssignment": {
+        "id": 6,
+        "vehicleId": 1,
+        "vehicle": {
+            "id": 1,
+            "plateNumber": "N 1234 XX",
+            "vehicleCode": "ANGKOT-01",
+            "capacity": 12,
+            "currentOdometer": 46500,
+            "type": "REGULER",
+            "status": "ACTIVE",
+            "createdAt": "2026-08-05T00:26:17.570Z",
+            "updatedAt": "2026-08-07T04:47:17.749Z"
+        },
+        "driverId": 1,
+        "routeId": 1,
+        "route": {
+            "id": 1,
+            "routeCode": "AL",
+            "routeName": "Arjosari - Landungsari",
+            "createdAt": "2026-08-04T11:40:12.097Z",
+            "updatedAt": "2026-08-04T11:40:12.097Z"
+        },
+        "direction": "FORWARD",
+        "currentPassengers": 0,
+        "assignmentDate": "2026-08-08",
+        "startTime": "09:00:00",
+        "endTime": "12:00:00",
+        "status": "SCHEDULED",
+        "conductorId": 2,
+        "createdAt": "2026-08-05T02:06:25.050Z",
+        "updatedAt": "2026-08-07T05:58:53.306Z"
+    },
+    "passengerCount": 2,
+    "totalAmount": 10000,
+    "status": "pending",
+    "paymentMethod": "QRIS",
+    "validUntil": "2026-08-08T02:00:00.000Z",
+    "createdAt": "2026-08-07T06:00:13.301Z",
+    "updatedAt": "2026-08-07T06:00:13.301Z"
+}
+```
+
+## 4.Delete Bookings
+
+### Request
+
+```http
+DELETE http://localhost:3000/bookings/{id}
+```
+
+### Response
+
+Status : `200 OK`
+
+# Success Delete Response
+```json
+{
+    "message": "Booking dengan ID 11 berhasil dihapus"
+}
+```
+
+# Failed Delete Response 
+```json
+{
+    "message": "Pembatalan gagal. Pembatalan harus dilakukan minimal 24 jam sebelum jam keberangkatan. (Sisa waktu: 10 jam)",
+    "error": "Bad Request",
+    "statusCode": 400
+}
 ---
 
 # Error Response

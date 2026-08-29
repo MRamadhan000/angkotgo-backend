@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  DeleteDateColumn,
 } from 'typeorm';
 
 import { Driver } from '../../drivers/entities/driver.entity';
@@ -50,4 +51,11 @@ export class Schedule {
 
   @OneToMany(() => Trip, (trip) => trip.schedule)
   trips!: Trip[];
+
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  deletedAt?: Date;
 }

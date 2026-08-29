@@ -1,45 +1,82 @@
-import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, ParseArrayPipe, Patch } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    Query,
+    ParseIntPipe,
+    HttpCode,
+    HttpStatus
+} from '@nestjs/common';
 import { RouteStopsService } from '../services/route-stops.service';
-import { CreateRouteStopDto } from '../dto/create-route.dto';
 import { RouteStop } from '../entities/route-stop.entity';
+import { CreateRouteStopDto } from '../dto/create/create-route-stop.dto';
+import { UpdateRouteStopDto } from '../dto/update/update-route-stop.dto';
 
-@Controller('routes/:routeId/stops')
+@Controller('route-stops')
 export class RouteStopsController {
     constructor(private readonly routeStopsService: RouteStopsService) { }
-    @Post('bulk')
-    async createBulk(
-        @Param('routeId', ParseIntPipe) routeId: number,
-        @Body(new ParseArrayPipe({ items: CreateRouteStopDto }))
-        createRouteStopDtos: CreateRouteStopDto[],
-    ): Promise<RouteStop[]> {
-        return await this.routeStopsService.createBulk(routeId, createRouteStopDtos);
-    }
 
-    // POST /routes/:routeId/stops
     @Post()
-    async create(
-        @Param('routeId', ParseIntPipe) routeId: number,
-        @Body() createRouteStopDto: CreateRouteStopDto,
-    ): Promise<RouteStop> {
-        return await this.routeStopsService.create(routeId, createRouteStopDto);
+    @HttpCode(HttpStatus.CREATED)
+    async create(@Body() createRouteStopDto: CreateRouteStopDto): Promise<{ message: string; data: RouteStop }> {
+        const data = await this.routeStopsService.create(createRouteStopDto);
+        return {
+            message: 'Halte baru berhasil ditambahkan.',
+            data,
+        };
     }
 
-    // GET /routes/:routeId/stops
+    @Post('bulk')
+    async createBulk(@Body() createRouteStopsDto: CreateRouteStopDto[]) {
+        const stops = await this.routeStopsService.createBulk(createRouteStopsDto);
+        return {
+            message: 'Multiple route stops successfully created',
+            data: stops,
+        };
+    }
+
     @Get()
-    async findByRoute(@Param('routeId', ParseIntPipe) routeId: number): Promise<RouteStop[]> {
-        return await this.routeStopsService.findByRoute(routeId);
+    @HttpCode(HttpStatus.OK)
+    async findByRouteAndDirection(
+        @Query('routeId', ParseIntPipe) routeId: number,
+        @Query('direction') direction: string,
+    ): Promise<{ message: string; data: RouteStop[] }> {
+        const data = await this.routeStopsService.findByRouteAndDirection(routeId, direction);
+        return {
+            message: `Berhasil mengambil daftar halte untuk trayek ID ${routeId} (${direction}).`,
+            data,
+        };
     }
 
-      @Patch(':id')
-      async update(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() updateRouteStopDto: any,
-      ) {
-        return await this.routeStopsService.update(id, updateRouteStopDto);
-      }
+    @Get(':id')
+    @HttpCode(HttpStatus.OK)
+    async findOne(@Param('id', ParseIntPipe) id: number): Promise<{ message: string; data: RouteStop }> {
+        const data = await this.routeStopsService.findOne(id);
+        return {
+            message: `Berhasil mengambil detail halte dengan ID ${id}.`,
+            data,
+        };
+    }
 
-    // DELETE /routes/:routeId/stops/:id
+    @Patch(':id')
+    @HttpCode(HttpStatus.OK)
+    async update(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateRouteStopDto: UpdateRouteStopDto
+    ): Promise<{ message: string; data: RouteStop }> {
+        const data = await this.routeStopsService.update(id, updateRouteStopDto);
+        return {
+            message: `Halte dengan ID ${id} berhasil diperbarui.`,
+            data,
+        };
+    }
+
     @Delete(':id')
+    @HttpCode(HttpStatus.OK)
     async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
         return await this.routeStopsService.remove(id);
     }

@@ -1,12 +1,68 @@
 import { Module } from '@nestjs/common';
-import { VehiclesService } from './vehicles.service';
-import { VehiclesController } from './vehicles.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Vehicle } from './entities/vehicle.entity';
+import { VehicleAssignment } from './entities/vehicle-assignment.entity';
+import { VehicleService } from './entities/vehicle-service.entity';
+import { VehicleServicesController } from './controllers/vehicle-services.controller';
+import { VehiclesController } from './controllers/vehicle.controller';
+import { VehicleServicesService } from './services/vehicle-services.service';
+import { VehiclesService } from './services/vehicles.service';
+import { VehicleAssignmentsController } from './controllers/vehicle-assignments.controller';
+import { VehicleAssignmentsService } from './services/vehicle-assignments.service';
+import { Driver } from 'src/drivers/entities/driver.entity';
+import { Conductor } from 'src/conductors/entities/conductor.entity';
+import { Route } from 'src/routes/entities/route.entity';
+import { VehicleLocation } from './entities/vehicle-location.entity';
+import { VehicleLocationsController } from './controllers/vehicle-locations.controller';
+import { VehicleLocationsService } from './services/vehicle-locations.service';
+import { RouteStop } from 'src/routes/entities/route-stop.entity';
+import { StopInterval } from 'src/routes/entities/stop-interval.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
+import { ScheduleTemplate } from './entities/schedule-template.entity';
+import { MockLiveLocation } from './entities/mock-live-locations.entity';
+import { MockLiveLocationController } from './controllers/mock-live-locations.controller';
+import { MockLiveLocationService } from './services/mock-live-location.service';
+import { ScheduleTemplateController } from './controllers/schedule-template.controller';
+import { ScheduleTemplateService } from './services/schedule-template.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Vehicle])],
-  controllers: [VehiclesController],
-  providers: [VehiclesService],
+  imports: [
+    TypeOrmModule.forFeature([
+      Vehicle, 
+      VehicleAssignment, 
+      VehicleService,
+      VehicleLocation,
+      Driver,
+      Conductor,
+      Route,
+      RouteStop,
+      StopInterval,
+      Payment,
+      ScheduleTemplate,
+      MockLiveLocation,
+    ])
+  ],
+  controllers: [
+    VehiclesController,
+    VehicleAssignmentsController,
+    VehicleLocationsController,
+    VehicleServicesController,
+    MockLiveLocationController,
+    ScheduleTemplateController,
+  ],
+  providers: [
+    VehiclesService,
+    VehicleAssignmentsService,
+    VehicleLocationsService,
+    VehicleServicesService,
+    MockLiveLocationService,
+    ScheduleTemplateService,
+  ],
+  exports: [
+    VehiclesService,
+    VehicleAssignmentsService,
+    VehicleLocationsService,
+    VehicleServicesService,
+  ],
 })
 export class VehiclesModule {}

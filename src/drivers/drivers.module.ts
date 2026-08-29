@@ -5,7 +5,7 @@ import { Driver } from './entities/driver.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Driver])], // Daftarkan entity di sini
+  imports: [TypeOrmModule.forFeature([Driver])],
   controllers: [DriversController],
   providers: [DriversService],
 })
