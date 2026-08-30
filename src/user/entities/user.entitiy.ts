@@ -18,6 +18,12 @@ export enum UserStatus {
   DEACTIVE = 'DEACTIVE',
 }
 
+export enum UserCategory {
+  Mahasiswa = 'MAHASISWA',
+  Pelajar = 'Pelajar',
+  Umum = 'UMUM',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -42,6 +48,13 @@ export class User {
   })
   status!: UserStatus;
 
+  @Column({
+    type: 'enum',
+    enum: UserCategory,
+    default: UserCategory.Umum,
+  })
+  user_category!: UserCategory;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
 
@@ -55,10 +68,7 @@ export class User {
   })
   deletedAt?: Date;
 
-  @OneToMany(
-    () => Payment,
-    (payment) => payment.user,
-  )
+  @OneToMany(() => Payment, (payment) => payment.user)
   payments!: Payment[];
 
   @BeforeInsert()
