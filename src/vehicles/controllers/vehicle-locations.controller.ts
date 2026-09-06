@@ -2,15 +2,30 @@ import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus
 import { CreateVehicleLocationDto } from '../dto/create/create-vehicle-location.dto';
 import { VehicleLocationsService } from '../services/vehicle-locations.service';
 import { UpdateVehicleLocationDto } from '../dto/update/update-vehicle-location.dto';
+import { VehicleGateway } from '../gateways/vehicle.gateway';
 
 @Controller('vehicle-locations')
 export class VehicleLocationsController {
-    constructor(private readonly vehicleLocationsService: VehicleLocationsService) { }
+    constructor(
+        private readonly vehicleLocationsService: VehicleLocationsService,
+        private readonly vehicleGateway: VehicleGateway,
+
+    ) { }
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async create(@Body() createDto: CreateVehicleLocationDto) {
         const data = await this.vehicleLocationsService.create(createDto);
+
+        this.vehicleGateway.broadcastLocation({
+            vehicleAssignmentId: data.vehicleAssignmentId,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            currentStopId: data.currentStopId,
+            stopStatus: data.stopStatus,
+            createdAt: data.createdAt,
+        });
+
         return {
             message: 'Posisi real-time berhasil direkam.',
             data,
