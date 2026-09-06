@@ -15,6 +15,7 @@ import { SinyalDetailEntity } from './entities/provide-sinyal-detail.entity';
 
 import { CreateSinyalDto } from './dto/create-sinyal.dto';
 import { UpdateSinyalDto } from './dto/update-sinyal.dto';
+import { SinyalGateway } from './gateway/sinyal.gateway';
 
 export interface CreateSinyalResponse {
   statusCode: number;
@@ -35,6 +36,7 @@ export class SinyalService {
     private readonly sinyalDetailRepository: Repository<SinyalDetailEntity>,
 
     private readonly dataSource: DataSource,
+    private readonly sinyalGateway: SinyalGateway,
   ) { }
 
   /**
@@ -98,6 +100,18 @@ export class SinyalService {
       }
 
       await queryRunner.commitTransaction();
+
+      await Promise.all(
+        (vehicleAssignmentId ?? []).map((assignmentId) =>
+          this.sinyalGateway.broadcastSinyal({
+            sinyalId: savedSinyal.id,
+            vehicleAssignmentId: String(assignmentId),
+            latitude: savedSinyal.latitude,
+            longitude: savedSinyal.longitude,
+            status: savedSinyal.status,
+          }),
+        ),
+      );
 
       return {
         statusCode: 201,
@@ -173,8 +187,22 @@ export class SinyalService {
     sinyal.status =
       updateSinyalDto.status;
 
-    return await this.sinyalRepository.save(
+    const updatedSinyal = await this.sinyalRepository.save(
       sinyal,
     );
+
+    await Promise.all(
+      (updatedSinyal.details ?? []).map((detail) =>
+        this.sinyalGateway.broadcastSinyal({
+          sinyalId: updatedSinyal.id,
+          vehicleAssignmentId: String(detail.vehicleAssignmentId),
+          latitude: updatedSinyal.latitude,
+          longitude: updatedSinyal.longitude,
+          status: updatedSinyal.status,
+        }),
+      ),
+    );
+
+    return updatedSinyal;
   }
 }

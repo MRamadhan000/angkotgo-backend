@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AssignmentStatus } from '../enum/vehicle.enum';
+import { AssignmentStatus, StopStatus } from '../enum/vehicle.enum';
 import { VehicleAssignment } from '../entities/vehicle-assignment.entity';
 import { CreateScheduleTemplateDto } from '../dto/create/create-schedule-template.dto';
 import { UpdateScheduleTemplateDto } from '../dto/update/update-schedule-template.dto';
 import { ScheduleTemplate } from '../entities/schedule-template.entity';
 import { VehicleLocation } from '../entities/vehicle-location.entity';
+import { VehicleGateway } from '../gateways/vehicle.gateway';
 
 @Injectable()
 export class ScheduleTemplateService {
@@ -17,6 +18,7 @@ export class ScheduleTemplateService {
         private readonly assignmentRepository: Repository<VehicleAssignment>,
         @InjectRepository(VehicleLocation)
         private readonly locationRepository: Repository<VehicleLocation>,
+        private readonly vehicleGateway: VehicleGateway,
     ) { }
 
     async create(dto: CreateScheduleTemplateDto): Promise<ScheduleTemplate> {
@@ -242,6 +244,18 @@ export class ScheduleTemplateService {
 
                     await this.locationRepository.save(locationEntities);
                     totalLocationsInserted += locationEntities.length;
+
+                    await Promise.all(
+                        locationEntities.map((location) =>
+                            this.vehicleGateway.broadcastLocation({
+                                vehicleAssignmentId: savedAssignment.id,
+                                latitude: location.latitude,
+                                longitude: location.longitude,
+                                stopStatus: StopStatus.HEADING_TO,
+                                createdAt: location.createdAt,
+                            }),
+                        ),
+                    );
                 }
             }
         }

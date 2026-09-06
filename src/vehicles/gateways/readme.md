@@ -1,498 +1,571 @@
-# Vehicle WebSocket
-
-WebSocket digunakan untuk memberikan update posisi kendaraan secara **real-time** kepada user.
-
-Setiap kendaraan/assignment memiliki room sendiri berdasarkan:
-
-```text
-assignment:{vehicleAssignmentId}
-```
-
-Contoh:
-
-```text
-vehicleAssignmentId = 123
-
-room = assignment:123
-```
-
-Dengan konsep ini, user hanya menerima update dari `vehicleAssignmentId` yang sedang mereka ikuti.
-
----
-
-## 1. Arsitektur
-
-Flow keseluruhan:
-
-```text
-                    ┌─────────────────────┐
-                    │       Driver        │
-                    └──────────┬──────────┘
-                               │
-                               │ POST
-                               ▼
-                    ┌─────────────────────┐
-                    │ Vehicle Controller  │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │ Vehicle Location    │
-                    │ Service             │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                         ┌──────────┐
-                         │ Database │
-                         └────┬─────┘
-                              │
-                              │ broadcast
-                              ▼
-                    ┌─────────────────────┐
-                    │   Vehicle Gateway   │
-                    └──────────┬──────────┘
-                               │
-                               │ WebSocket
-                               ▼
-                    ┌─────────────────────┐
-                    │ assignment:123      │
-                    └──────────┬──────────┘
-                               │
-                     ┌─────────┴─────────┐
-                     ▼                   ▼
-                  User A              User B
-```
-
----
-
-# 2. WebSocket URL
-
-Jika backend berjalan di:
-
-```text
-http://localhost:3001
-```
-
-maka frontend melakukan koneksi:
-
-```ts
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3001');
-```
-
-Install Socket.IO Client jika belum:
-
-```bash
-npm install socket.io-client
-```
-
----
-
-# 3. Connect ke WebSocket
-
-Buat koneksi:
-
-```ts
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3001');
-
-socket.on('connect', () => {
-  console.log('Connected:', socket.id);
-});
-```
-
-Ketika berhasil:
-
-```text
-Connected: xxxxxxxxx
-```
-
----
-
-# 4. Join berdasarkan Vehicle Assignment ID
-
-Misalnya user sedang melihat kendaraan dengan:
-
-```text
-vehicleAssignmentId = 123
-```
-
-Frontend mengirim event:
-
-```ts
-socket.emit('vehicle:join', {
-  vehicleAssignmentId: 123,
-});
-```
-
-Gateway akan menjalankan:
-
-```ts
-@SubscribeMessage('vehicle:join')
-handleJoin(
-  @ConnectedSocket() client: Socket,
-  @MessageBody()
-  data: { vehicleAssignmentId: number },
-) {
-  const room = `assignment:${data.vehicleAssignmentId}`;
-
-  client.join(room);
-
-  console.log(`${client.id} joined ${room}`);
-
-  return {
-    event: 'vehicle:joined',
-    data: {
-      vehicleAssignmentId: data.vehicleAssignmentId,
-    },
-  };
-}
-```
-
-User kemudian berada di:
-
-```text
-assignment:123
-```
-
----
-
-# 5. Menerima Update Kendaraan
-
-Ketika driver mengirim lokasi baru melalui REST:
-
-```http
-POST /vehicle-locations
-```
-
-Backend menyimpan lokasi ke database kemudian menjalankan:
-
-```ts
-this.vehicleGateway.broadcastLocation(data);
-```
-
-Gateway akan melakukan:
-
-```ts
-const room = `assignment:${location.vehicleAssignmentId}`;
-
-this.server.to(room).emit('vehicle:updated', location);
-```
-
-Jika:
-
-```text
-vehicleAssignmentId = 123
-```
-
-maka:
-
-```text
-assignment:123
-```
-
-akan menerima:
-
-```text
-vehicle:updated
-```
-
----
-
-# 6. Frontend menerima update
-
-Frontend cukup listen:
-
-```ts
-socket.on('vehicle:updated', (data) => {
-  console.log('Vehicle updated:', data);
-});
-```
-
-Contoh data:
-
-```json
-{
-  "vehicleAssignmentId": 123,
-  "latitude": -7.9839,
-  "longitude": 112.6214,
-  "currentStopId": 10,
-  "stopStatus": "HEADING_TO",
-  "createdAt": "2026-09-06T02:00:00.000Z"
-}
-```
-
-Frontend kemudian bisa mengubah posisi marker kendaraan.
-
----
-
-# 7. Contoh Lengkap untuk User
-
-Contoh sederhana React / Next.js:
-
-```tsx
-'use client';
-
-import { useEffect } from 'react';
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3001');
-
-export default function VehicleTracking({
-  vehicleAssignmentId,
-}: {
-  vehicleAssignmentId: number;
-}) {
-  useEffect(() => {
-    // Connect
-    socket.on('connect', () => {
-      console.log('Connected:', socket.id);
-
-      // Join assignment
-      socket.emit('vehicle:join', {
-        vehicleAssignmentId,
-      });
-    });
-
-    // Receive vehicle update
-    socket.on('vehicle:updated', (data) => {
-      console.log('Vehicle updated:', data);
-
-      // Update marker / state
-    });
-
-    return () => {
-      socket.off('connect');
-      socket.off('vehicle:updated');
-    };
-  }, [vehicleAssignmentId]);
-
-  return (
-    <div>
-      Monitoring vehicle {vehicleAssignmentId}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vehicle WebSocket Test - 176</title>
+
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 30px;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .connecting {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .connected {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .info {
+      background: #f7f7f7;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 5px;
+    }
+
+    .value {
+      font-weight: bold;
+      word-break: break-word;
+    }
+
+    pre {
+      margin: 0;
+      background: #111;
+      color: #00ff88;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      min-height: 150px;
+      font-size: 14px;
+    }
+
+    #logs {
+      height: 300px;
+      overflow-y: auto;
+      background: #111;
+      color: #00ff88;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .log {
+      margin-bottom: 8px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+    }
+
+    .success {
+      color: #00ff88;
+    }
+
+    .error {
+      color: #ff5555;
+    }
+
+    .info-log {
+      color: #55aaff;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="card">
+    <h1>🚐 Vehicle WebSocket Test</h1>
+
+    <p>
+      Testing realtime vehicle tracking menggunakan
+      <strong>Socket.IO</strong>.
+    </p>
+
+    <div id="connectionStatus" class="status connecting">
+      🟡 Connecting...
     </div>
+
+    <div class="info-grid">
+
+      <div class="info">
+        <div class="label">
+          Backend
+        </div>
+
+        <div class="value">
+          http://localhost:3001
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Vehicle Assignment ID
+        </div>
+
+        <div class="value">
+          176
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Room
+        </div>
+
+        <div class="value">
+          assignment:176
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Socket ID
+        </div>
+
+        <div class="value" id="socketId">
+          -
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- VEHICLE DATA -->
+  <div class="card">
+
+    <h2>📍 Latest Vehicle Location</h2>
+
+    <div class="info-grid">
+
+      <div class="info">
+        <div class="label">
+          Latitude
+        </div>
+
+        <div class="value" id="latitude">
+          -
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Longitude
+        </div>
+
+        <div class="value" id="longitude">
+          -
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Current Stop ID
+        </div>
+
+        <div class="value" id="currentStopId">
+          -
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Stop Status
+        </div>
+
+        <div class="value" id="stopStatus">
+          -
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Vehicle Assignment ID
+        </div>
+
+        <div class="value" id="vehicleAssignmentId">
+          -
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="label">
+          Last Updated
+        </div>
+
+        <div class="value" id="createdAt">
+          -
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- RAW PAYLOAD -->
+  <div class="card">
+
+    <h2>📦 Latest Payload</h2>
+
+    <pre id="vehicleData">Belum menerima data...</pre>
+
+  </div>
+
+
+  <!-- LOG -->
+  <div class="card">
+
+    <h2>📋 Socket Logs</h2>
+
+    <div id="logs"></div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+  // ==================================================
+  // CONFIG
+  // ==================================================
+
+  const BACKEND_URL = "http://localhost:3001";
+
+  const VEHICLE_ASSIGNMENT_ID = 176;
+
+  const ROOM = `assignment:${VEHICLE_ASSIGNMENT_ID}`;
+
+
+  // ==================================================
+  // ELEMENT
+  // ==================================================
+
+  const statusElement =
+    document.getElementById("connectionStatus");
+
+  const socketIdElement =
+    document.getElementById("socketId");
+
+  const vehicleDataElement =
+    document.getElementById("vehicleData");
+
+  const logsElement =
+    document.getElementById("logs");
+
+
+  // ==================================================
+  // LOG FUNCTION
+  // ==================================================
+
+  function addLog(message, type = "info-log") {
+
+    const time =
+      new Date().toLocaleTimeString();
+
+    const logElement =
+      document.createElement("div");
+
+    logElement.className = `log ${type}`;
+
+    logElement.innerText =
+      `[${time}] ${message}`;
+
+    logsElement.appendChild(logElement);
+
+    // Auto scroll
+    logsElement.scrollTop =
+      logsElement.scrollHeight;
+
+    console.log(message);
+  }
+
+
+  // ==================================================
+  // CONNECT SOCKET.IO
+  // ==================================================
+
+  addLog(
+    `Connecting to ${BACKEND_URL}...`
   );
-}
-```
 
-Penggunaan:
 
-```tsx
-<VehicleTracking vehicleAssignmentId={123} />
-```
+  const socket = io(BACKEND_URL);
 
----
 
-# 8. Apa yang terjadi?
+  // ==================================================
+  // CONNECTED
+  // ==================================================
 
-Misalnya user membuka:
+  socket.on("connect", () => {
 
-```text
-/vehicle/123
-```
+    addLog(
+      `✅ Socket connected: ${socket.id}`,
+      "success"
+    );
 
-Frontend mendapatkan:
+    socketIdElement.innerText =
+      socket.id;
 
-```text
-vehicleAssignmentId = 123
-```
 
-Kemudian:
+    statusElement.className =
+      "status connected";
 
-```text
-Frontend
-    │
-    │ socket.emit('vehicle:join')
-    │ { vehicleAssignmentId: 123 }
-    ▼
-Gateway
-    │
-    │ client.join('assignment:123')
-    ▼
-assignment:123
-```
+    statusElement.innerText =
+      "🟢 Socket Connected";
 
-Ketika driver mengirim lokasi:
 
-```text
-Driver
-   │
-   │ POST /vehicle-locations
-   ▼
-Backend
-   │
-   ├── Save database
-   │
-   └── broadcastLocation()
-             │
-             ▼
-       assignment:123
-             │
-       ┌─────┴─────┐
-       ▼           ▼
-    User A       User B
-```
+    // ==================================================
+    // JOIN VEHICLE
+    // ==================================================
 
----
+    addLog(
+      `📡 Sending vehicle:join for assignment ${VEHICLE_ASSIGNMENT_ID}`,
+      "info-log"
+    );
 
-# 9. User Tidak Mendapat Semua Kendaraan
 
-Misalnya terdapat:
+    socket.emit("vehicle:join", {
 
-```text
-assignment:101
-assignment:102
-assignment:103
-```
+      vehicleAssignmentId:
+        VEHICLE_ASSIGNMENT_ID
 
-User A hanya join:
+    });
 
-```text
-assignment:101
-```
 
-Maka:
+    addLog(
+      `📡 Join sent → ${ROOM}`,
+      "info-log"
+    );
 
-```text
-Vehicle 101
-     ↓
-assignment:101
-     ↓
-User A ✅
-```
+  });
 
-Sedangkan:
 
-```text
-Vehicle 102
-     ↓
-assignment:102
-     ↓
-User A ❌
-```
+  // ==================================================
+  // VEHICLE JOINED
+  // ==================================================
 
-dan:
+  socket.on("vehicle:joined", (data) => {
 
-```text
-Vehicle 103
-     ↓
-assignment:103
-     ↓
-User A ❌
-```
+    addLog(
+      `✅ Successfully joined vehicle ${VEHICLE_ASSIGNMENT_ID}`,
+      "success"
+    );
 
-Jadi user hanya menerima update dari assignment yang dia join.
+    addLog(
+      `Join response: ${JSON.stringify(data)}`,
+      "success"
+    );
 
----
+    statusElement.className =
+      "status connected";
 
-# 10. Overwrite Posisi di Frontend
+    statusElement.innerText =
+      "🟢 Connected + Joined assignment:176";
 
-Database tetap menyimpan history:
+  });
 
-```text
-08:00 → -7.9830, 112.6210
-08:01 → -7.9835, 112.6215
-08:02 → -7.9840, 112.6220
-```
 
-Tetapi frontend cukup menyimpan posisi terakhir.
+  // ==================================================
+  // VEHICLE UPDATED
+  // ==================================================
 
-Contoh:
+  socket.on("vehicle:updated", (data) => {
 
-```ts
-const [vehicleLocation, setVehicleLocation] = useState(null);
+    addLog(
+      "🚐 VEHICLE UPDATED RECEIVED!",
+      "success"
+    );
 
-socket.on('vehicle:updated', (data) => {
-  setVehicleLocation(data);
-});
-```
+    addLog(
+      `Payload: ${JSON.stringify(data)}`,
+      "success"
+    );
 
-Ketika data baru datang:
 
-```text
-Data lama
-assignment 123
-lat -7.9835
-lng 112.6215
+    // ==================================================
+    // UPDATE RAW JSON
+    // ==================================================
 
-        ↓
+    vehicleDataElement.innerText =
+      JSON.stringify(data, null, 2);
 
-Data baru
-assignment 123
-lat -7.9840
-lng 112.6220
 
-        ↓
+    // ==================================================
+    // UPDATE LATITUDE
+    // ==================================================
 
-Frontend overwrite
-```
+    document.getElementById("latitude")
+      .innerText =
+      data.latitude ?? "-";
 
-Sehingga marker selalu menunjukkan posisi terbaru.
 
----
+    // ==================================================
+    // UPDATE LONGITUDE
+    // ==================================================
 
-# 11. Flow Akhir
+    document.getElementById("longitude")
+      .innerText =
+      data.longitude ?? "-";
 
-Untuk AngkotGo, flow yang digunakan:
 
-```text
-                    DRIVER
-                      │
-                      │ REST POST
-                      ▼
-             /vehicle-locations
-                      │
-                      ▼
-          VehicleLocationsService
-                      │
-                      ▼
-                   DATABASE
-                      │
-                      ▼
-             VehicleGateway
-                      │
-                      │ emit
-                      ▼
-             assignment:{id}
-                      │
-                      ▼
-                USER FRONTEND
-                      │
-                      ▼
-             Update marker map
-```
+    // ==================================================
+    // UPDATE CURRENT STOP
+    // ==================================================
 
-### Kesimpulan
+    document.getElementById("currentStopId")
+      .innerText =
+      data.currentStopId ?? "-";
 
-```text
-REST
-→ digunakan driver untuk mengirim lokasi
 
-Database
-→ menyimpan history lokasi
+    // ==================================================
+    // UPDATE STATUS
+    // ==================================================
 
-WebSocket
-→ mengirim perubahan lokasi secara realtime
+    document.getElementById("stopStatus")
+      .innerText =
+      data.stopStatus ?? "-";
 
-vehicleAssignmentId
-→ digunakan sebagai identitas room
 
-Frontend
-→ hanya menerima assignment yang di-join
-```
+    // ==================================================
+    // UPDATE ASSIGNMENT ID
+    // ==================================================
 
-Contoh paling penting:
+    document.getElementById("vehicleAssignmentId")
+      .innerText =
+      data.vehicleAssignmentId ?? "-";
 
-```ts
-// User join
-socket.emit('vehicle:join', {
-  vehicleAssignmentId: 123,
-});
 
-// User menerima update
-socket.on('vehicle:updated', (data) => {
-  // posisi terbaru assignment 123
-});
-```
+    // ==================================================
+    // UPDATE CREATED AT
+    // ==================================================
+
+    document.getElementById("createdAt")
+      .innerText =
+      data.createdAt ?? "-";
+
+  });
+
+
+  // ==================================================
+  // CONNECTION ERROR
+  // ==================================================
+
+  socket.on("connect_error", (error) => {
+
+    addLog(
+      `❌ Connection error: ${error.message}`,
+      "error"
+    );
+
+    statusElement.className =
+      "status disconnected";
+
+    statusElement.innerText =
+      "🔴 Connection Error";
+
+  });
+
+
+  // ==================================================
+  // DISCONNECT
+  // ==================================================
+
+  socket.on("disconnect", (reason) => {
+
+    addLog(
+      `🔴 Socket disconnected: ${reason}`,
+      "error"
+    );
+
+    statusElement.className =
+      "status disconnected";
+
+    statusElement.innerText =
+      "🔴 Disconnected";
+
+    socketIdElement.innerText =
+      "-";
+
+  });
+
+
+</script>
+
+</body>
+</html>

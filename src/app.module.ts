@@ -11,6 +11,7 @@ import { UserModule } from './user/user.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
 import { CostsModule } from './tarif/costs.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -24,13 +25,15 @@ import { CostsModule } from './tarif/costs.module';
       inject: [ConfigService],
 
       useFactory: (configService: ConfigService) => {
+        const databaseUrl = configService.get<string>('DATABASE_URL') ?? '';
+        const isLocalDatabase = /localhost|127\.0\.0\.1/.test(databaseUrl);
         const isDev = configService.get<string>('NODE_ENV') !== 'production';
         return {
           type: 'postgres',
-          url: configService.get<string>('DATABASE_URL'),
+          url: databaseUrl,
           autoLoadEntities: true,
           synchronize: isDev,
-          ssl: isDev
+          ssl: isLocalDatabase
             ? false
             : {
                 rejectUnauthorized: false,
@@ -40,9 +43,11 @@ import { CostsModule } from './tarif/costs.module';
           logging: isDev,
           extra: {
             max: 10,
-            min: 2,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 5000,
+            min: 0,
+            idleTimeoutMillis: 10000,
+            connectionTimeoutMillis: 10000,
+            keepAlive: true,
+            keepAliveInitialDelayMillis: 10000,
           },
         };
       },
@@ -56,6 +61,7 @@ import { CostsModule } from './tarif/costs.module';
     PaymentsModule,
     ProvideSinyalModule,
     CostsModule,
+    RealtimeModule,
   ],
 })
 export class AppModule implements OnModuleInit {
