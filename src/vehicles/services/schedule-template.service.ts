@@ -249,6 +249,7 @@ export class ScheduleTemplateService {
                         locationEntities.map((location) =>
                             this.vehicleGateway.broadcastLocation({
                                 vehicleAssignmentId: savedAssignment.id,
+                                currentPassengers: savedAssignment.currentPassengers,
                                 latitude: location.latitude,
                                 longitude: location.longitude,
                                 stopStatus: StopStatus.HEADING_TO,

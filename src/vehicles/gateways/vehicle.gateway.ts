@@ -26,6 +26,7 @@ const VEHICLE_LOCATION_CHANNEL =
 
 interface VehicleLocationPayload {
     vehicleAssignmentId: number;
+    currentPassengers: number;
     latitude: number;
     longitude: number;
     currentStopId?: number;
@@ -215,6 +216,28 @@ export class VehicleGateway
         );
     }
 
+    async broadcastCurrentPassengers(
+        vehicleAssignmentId: number,
+        currentPassengers: number,
+    ): Promise<void> {
+        const latestLocation =
+            await this.redisPubSub.get<VehicleLocationPayload>(
+                this.getLatestKey(vehicleAssignmentId),
+            );
+
+        if (!latestLocation) {
+            this.logger.warn(
+                `[Redis] Latest location tidak ditemukan untuk assignment=${vehicleAssignmentId}; currentPassengers belum dipublish`,
+            );
+            return;
+        }
+
+        await this.broadcastLocation({
+            ...latestLocation,
+            currentPassengers,
+        });
+    }
+
     /**
      * =========================================================
      * EMIT LOCATION
@@ -232,6 +255,9 @@ export class VehicleGateway
         const payload = {
             vehicleAssignmentId:
                 location.vehicleAssignmentId,
+
+            currentPassengers:
+                location.currentPassengers,
 
             latitude:
                 location.latitude,

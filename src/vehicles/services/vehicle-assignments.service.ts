@@ -17,6 +17,7 @@ import {
     PaymentStatus,
 } from 'src/payments/entities/payment.entity';
 import { mapAssignmentResponse } from '../utils/response-map';
+import { VehicleGateway } from '../gateways/vehicle.gateway';
 
 @Injectable()
 export class VehicleAssignmentsService {
@@ -39,6 +40,7 @@ export class VehicleAssignmentsService {
         @InjectRepository(Payment)
         private readonly paymentRepository:
             Repository<Payment>,
+        private readonly vehicleGateway: VehicleGateway,
 
     ) { }
 
@@ -165,7 +167,16 @@ export class VehicleAssignmentsService {
             assignmentDate: updateDto.assignmentDate ? new Date(updateDto.assignmentDate) : assignment.assignmentDate,
         });
 
-        return await this.assignmentRepository.save(assignment);
+        const updatedAssignment = await this.assignmentRepository.save(assignment);
+
+        if (updateDto.currentPassengers !== undefined) {
+            await this.vehicleGateway.broadcastCurrentPassengers(
+                updatedAssignment.id,
+                updatedAssignment.currentPassengers,
+            );
+        }
+
+        return updatedAssignment;
     }
 
     async remove(id: number): Promise<{ message: string }> {

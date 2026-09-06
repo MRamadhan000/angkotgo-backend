@@ -182,8 +182,14 @@ export class VehicleLocationsService {
     }
 
     private async publishLocation(location: VehicleLocation): Promise<void> {
+        const assignment = await this.assignmentRepository.findOne({
+            where: { id: location.vehicleAssignmentId },
+            select: { id: true, currentPassengers: true },
+        });
+
         await this.vehicleGateway.broadcastLocation({
             vehicleAssignmentId: location.vehicleAssignmentId,
+            currentPassengers: assignment?.currentPassengers ?? 0,
             latitude: location.latitude,
             longitude: location.longitude,
             currentStopId: location.currentStopId,
