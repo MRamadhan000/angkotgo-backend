@@ -12,6 +12,11 @@ import {
 } from './entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.entity';
+import { User } from 'src/user/entities/user.entitiy';
+import {
+  PaymentGateway,
+  PaymentRealtimePayload,
+} from './gateway/payment.gateway';
 
 @Injectable()
 export class PaymentsService {
@@ -20,10 +25,21 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<Payment>,
     @InjectRepository(VehicleAssignment)
     private readonly vehicleAssignmentRepository: Repository<VehicleAssignment>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly paymentGateway: PaymentGateway,
   ) { }
 
   async create(createPaymentDto: CreatePaymentDto, userId: number) {
     const { vehicleAssignmentId, paymentType, amount } = createPaymentDto;
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
 
     const vehicleAssignment =
       await this.vehicleAssignmentRepository.findOne({
@@ -65,6 +81,10 @@ export class PaymentsService {
     });
 
     const savedPayment = await this.paymentRepository.save(payment);
+
+    await this.paymentGateway.broadcastPayment(
+      this.toRealtimePayload(savedPayment),
+    );
 
     if (paymentType === PaymentType.CASH) {
       return {
@@ -389,10 +409,32 @@ export class PaymentsService {
         payment.xenditPaidAt;
 
       await this.paymentRepository.save(payment);
+      await this.paymentGateway.broadcastPayment(
+        this.toRealtimePayload(payment),
+      );
+
+      await this.paymentGateway.broadcastPayment(
+        this.toRealtimePayload(payment),
+      );
     }
 
     return {
       message: 'Webhook berhasil diproses',
+    };
+  }
+
+  private toRealtimePayload(payment: Payment): PaymentRealtimePayload {
+    return {
+      paymentId: payment.id,
+      paymentCode: payment.paymentCode,
+      vehicleAssignmentId: payment.vehicleAssignmentId,
+      userId: payment.userId,
+      paymentType: payment.paymentType,
+      amount: Number(payment.amount),
+      status: payment.status,
+      paidAt: payment.paidAt,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
     };
   }
 }
