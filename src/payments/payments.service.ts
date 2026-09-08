@@ -5,11 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  Payment,
-  PaymentStatus,
-  PaymentType,
-} from './entities/payment.entity';
+import { Payment, PaymentStatus, PaymentType } from './entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.entity';
 import { User } from 'src/user/entities/user.entitiy';
@@ -28,7 +24,7 @@ export class PaymentsService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly paymentGateway: PaymentGateway,
-  ) { }
+  ) {}
 
   async create(createPaymentDto: CreatePaymentDto, userId: number) {
     const { vehicleAssignmentId, paymentType, amount } = createPaymentDto;
@@ -41,10 +37,9 @@ export class PaymentsService {
       throw new NotFoundException('User tidak ditemukan');
     }
 
-    const vehicleAssignment =
-      await this.vehicleAssignmentRepository.findOne({
-        where: { id: vehicleAssignmentId },
-      });
+    const vehicleAssignment = await this.vehicleAssignmentRepository.findOne({
+      where: { id: vehicleAssignmentId },
+    });
 
     if (!vehicleAssignment) {
       throw new NotFoundException('Vehicle assignment tidak ditemukan');
@@ -123,10 +118,10 @@ export class PaymentsService {
         userId: payment.userId,
         user: payment.user
           ? {
-            id: payment.user.id,
-            name: payment.user.name,
-            email: payment.user.email,
-          }
+              id: payment.user.id,
+              name: payment.user.name,
+              email: payment.user.email,
+            }
           : null,
         paymentType: payment.paymentType,
         amount: Number(payment.amount),
@@ -197,8 +192,7 @@ export class PaymentsService {
         });
       }
 
-      const paymentRequestId =
-        xenditData?.payment_request_id ?? null;
+      const paymentRequestId = xenditData?.payment_request_id ?? null;
 
       if (!paymentRequestId) {
         payment.status = PaymentStatus.FAILED;
@@ -219,12 +213,9 @@ export class PaymentsService {
       );
 
       payment.xenditPaymentRequestId = paymentRequestId;
-      payment.xenditReferenceId =
-        xenditData?.reference_id ?? referenceId;
-      payment.xenditPaymentStatus =
-        xenditData?.status ?? 'PENDING';
-      payment.xenditChannelCode =
-        xenditData?.channel_code ?? 'QRIS';
+      payment.xenditReferenceId = xenditData?.reference_id ?? referenceId;
+      payment.xenditPaymentStatus = xenditData?.status ?? 'PENDING';
+      payment.xenditChannelCode = xenditData?.channel_code ?? 'QRIS';
       payment.xenditQrString = qrAction?.value ?? null;
 
       await this.paymentRepository.save(payment);
@@ -254,8 +245,7 @@ export class PaymentsService {
       }
 
       payment.status = PaymentStatus.FAILED;
-      payment.xenditErrorMessage =
-        error?.message ?? 'Unknown Xendit error';
+      payment.xenditErrorMessage = error?.message ?? 'Unknown Xendit error';
 
       await this.paymentRepository.save(payment);
 
@@ -264,15 +254,12 @@ export class PaymentsService {
   }
 
   async getFinancialByVehicleAssignment(vehicleAssignmentId: number) {
-    const vehicleAssignment =
-      await this.vehicleAssignmentRepository.findOne({
-        where: { id: vehicleAssignmentId },
-      });
+    const vehicleAssignment = await this.vehicleAssignmentRepository.findOne({
+      where: { id: vehicleAssignmentId },
+    });
 
     if (!vehicleAssignment) {
-      throw new NotFoundException(
-        'Vehicle assignment tidak ditemukan',
-      );
+      throw new NotFoundException('Vehicle assignment tidak ditemukan');
     }
 
     const payments = await this.paymentRepository.find({
@@ -329,10 +316,10 @@ export class PaymentsService {
           userId: payment.userId,
           user: payment.user
             ? {
-              id: payment.user.id,
-              name: payment.user.name,
-              email: payment.user.email,
-            }
+                id: payment.user.id,
+                name: payment.user.name,
+                email: payment.user.email,
+              }
             : null,
           paymentType: payment.paymentType,
           amount: Number(payment.amount),
@@ -362,35 +349,26 @@ export class PaymentsService {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const random = Math.random()
-      .toString(36)
-      .substring(2, 8)
-      .toUpperCase();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     return `PAY-${year}${month}${day}-${random}`;
   }
 
   async handleXenditWebhook(payload: any) {
-    const paymentRequestId =
-      payload?.payment_request_id;
+    const paymentRequestId = payload?.payment_request_id;
 
     if (!paymentRequestId) {
-      throw new BadRequestException(
-        'Payment request ID tidak ditemukan',
-      );
+      throw new BadRequestException('Payment request ID tidak ditemukan');
     }
 
-    const payment =
-      await this.paymentRepository.findOne({
-        where: {
-          xenditPaymentRequestId: paymentRequestId,
-        },
-      });
+    const payment = await this.paymentRepository.findOne({
+      where: {
+        xenditPaymentRequestId: paymentRequestId,
+      },
+    });
 
     if (!payment) {
-      throw new NotFoundException(
-        'Payment tidak ditemukan',
-      );
+      throw new NotFoundException('Payment tidak ditemukan');
     }
 
     const xenditStatus = payload?.status;
@@ -398,15 +376,11 @@ export class PaymentsService {
     if (xenditStatus === 'SUCCEEDED') {
       payment.status = PaymentStatus.PAID;
 
-      payment.xenditPaymentStatus =
-        xenditStatus;
+      payment.xenditPaymentStatus = xenditStatus;
 
-      payment.xenditPaidAt =
-        payload?.created ??
-        new Date();
+      payment.xenditPaidAt = payload?.created ?? new Date();
 
-      payment.paidAt =
-        payment.xenditPaidAt;
+      payment.paidAt = payment.xenditPaidAt;
 
       await this.paymentRepository.save(payment);
       await this.paymentGateway.broadcastPayment(
@@ -435,6 +409,26 @@ export class PaymentsService {
       paidAt: payment.paidAt,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
+    };
+  }
+
+  async getHistoryByUserId(userId: number) {
+    const payments = await this.paymentRepository.find({
+      where: { userId },
+      select: {
+        paymentCode: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+      },
+      order: {
+        createdAt: 'DESC', // Urutkan transaksi terbaru di atas
+      },
+    });
+
+    return {
+      message: 'Berhasil mengambil riwayat pembayaran',
+      data: payments,
     };
   }
 }
