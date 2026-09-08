@@ -99,6 +99,26 @@ export class PaymentsService {
     return this.createXenditPayment(savedPayment);
   }
 
+  async getHistoryByUserId(userId: number) {
+    const payments = await this.paymentRepository.find({
+      where: { userId },
+      select: {
+        paymentCode: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+      },
+      order: {
+        createdAt: 'DESC', // Urutkan transaksi terbaru di atas
+      },
+    });
+
+    return {
+      message: 'Berhasil mengambil riwayat pembayaran',
+      data: payments,
+    };
+  }
+
   async findOne(id: number) {
     const payment = await this.paymentRepository.findOne({
       where: { id },
@@ -409,26 +429,6 @@ export class PaymentsService {
       paidAt: payment.paidAt,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
-    };
-  }
-
-  async getHistoryByUserId(userId: number) {
-    const payments = await this.paymentRepository.find({
-      where: { userId },
-      select: {
-        paymentCode: true,
-        amount: true,
-        status: true,
-        createdAt: true,
-      },
-      order: {
-        createdAt: 'DESC', // Urutkan transaksi terbaru di atas
-      },
-    });
-
-    return {
-      message: 'Berhasil mengambil riwayat pembayaran',
-      data: payments,
     };
   }
 }
