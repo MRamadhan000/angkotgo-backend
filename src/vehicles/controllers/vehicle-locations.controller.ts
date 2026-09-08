@@ -5,12 +5,15 @@ import { UpdateVehicleLocationDto } from '../dto/update/update-vehicle-location.
 
 @Controller('vehicle-locations')
 export class VehicleLocationsController {
-    constructor(private readonly vehicleLocationsService: VehicleLocationsService) { }
+    constructor(
+        private readonly vehicleLocationsService: VehicleLocationsService,
+    ) { }
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async create(@Body() createDto: CreateVehicleLocationDto) {
         const data = await this.vehicleLocationsService.create(createDto);
+
         return {
             message: 'Posisi real-time berhasil direkam.',
             data,

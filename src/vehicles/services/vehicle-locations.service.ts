@@ -7,6 +7,7 @@ import { VehicleLocation } from '../entities/vehicle-location.entity';
 import { UpdateVehicleLocationDto } from '../dto/update/update-vehicle-location.dto';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopStatus } from '../enum/vehicle.enum';
+import { VehicleGateway } from '../gateways/vehicle.gateway';
 
 @Injectable()
 export class VehicleLocationsService {
@@ -17,6 +18,7 @@ export class VehicleLocationsService {
         private readonly assignmentRepository: Repository<VehicleAssignment>,
         @InjectRepository(RouteStop)
         private readonly routeStopRepository: Repository<RouteStop>,
+        private readonly vehicleGateway: VehicleGateway,
     ) { }
 
     async create(createDto: CreateVehicleLocationDto): Promise<VehicleLocation> {
@@ -38,8 +40,13 @@ export class VehicleLocationsService {
             }
         }
 
-        const location = this.locationRepository.create(createDto);
-        return await this.locationRepository.save(location);
+        const location = await this.locationRepository.save(
+            this.locationRepository.create(createDto),
+        );
+
+        await this.publishLocation(location);
+
+        return location;
     }
 
     async findLatestByAssignmentId(assignmentId: number): Promise<VehicleLocation> {
@@ -167,7 +174,28 @@ export class VehicleLocationsService {
         Object.assign(location, updateDto);
 
         // 5. Simpan perubahan ke database
-        return await this.locationRepository.save(location);
+        const updatedLocation = await this.locationRepository.save(location);
+
+        await this.publishLocation(updatedLocation);
+
+        return updatedLocation;
+    }
+
+    private async publishLocation(location: VehicleLocation): Promise<void> {
+        const assignment = await this.assignmentRepository.findOne({
+            where: { id: location.vehicleAssignmentId },
+            select: { id: true, currentPassengers: true },
+        });
+
+        await this.vehicleGateway.broadcastLocation({
+            vehicleAssignmentId: location.vehicleAssignmentId,
+            currentPassengers: assignment?.currentPassengers ?? 0,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            currentStopId: location.currentStopId,
+            stopStatus: location.stopStatus,
+            createdAt: location.createdAt,
+        });
     }
 
     async remove(id: number): Promise<{ message: string }> {

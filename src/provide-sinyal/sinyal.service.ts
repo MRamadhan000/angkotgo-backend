@@ -1,10 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { SinyalEntity, SinyalStatus } from './entities/provide-sinyal.entity';
+
+import {
+  SinyalEntity,
+  SinyalStatus,
+} from './entities/provide-sinyal.entity';
+
+import { SinyalDetailEntity } from './entities/provide-sinyal-detail.entity';
+
 import { CreateSinyalDto } from './dto/create-sinyal.dto';
 import { UpdateSinyalDto } from './dto/update-sinyal.dto';
-import { SinyalDetailEntity } from './entities/provide-sinyal-detail.entity';
+import { SinyalGateway } from './gateway/sinyal.gateway';
 
 export interface CreateSinyalResponse {
   statusCode: number;
@@ -20,99 +31,178 @@ export class SinyalService {
   constructor(
     @InjectRepository(SinyalEntity)
     private readonly sinyalRepository: Repository<SinyalEntity>,
+
     @InjectRepository(SinyalDetailEntity)
     private readonly sinyalDetailRepository: Repository<SinyalDetailEntity>,
-    private readonly dataSource: DataSource,
-  ) {}
 
+    private readonly dataSource: DataSource,
+    private readonly sinyalGateway: SinyalGateway,
+  ) { }
+
+  /**
+   * Penumpang membuat sinyal baru
+   */
   async create(
     createSinyalDto: CreateSinyalDto,
   ): Promise<CreateSinyalResponse> {
-    const { latitude, longitude, vehicleAssignmentId } = createSinyalDto;
+    const {
+      latitude,
+      longitude,
+      vehicleAssignmentId,
+    } = createSinyalDto;
 
-    const queryRunner = this.dataSource.createQueryRunner();
+    const queryRunner =
+      this.dataSource.createQueryRunner();
+
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Buat record Sinyal Utama (Header)
-      const newSinyal = this.sinyalRepository.create({
-        latitude,
-        longitude,
-        status: SinyalStatus.ACTIVE,
-        // Pada header bisa diisi null atau gabungan string jika dibutuhkan
-        // vehicleAssignmentId: null,
-        geom: {
-          type: 'Point',
-          coordinates: [longitude, latitude],
-        },
-      });
+      // 1. Buat sinyal utama
+      const newSinyal =
+        this.sinyalRepository.create({
+          latitude,
+          longitude,
+          status: SinyalStatus.ACTIVE,
 
-      const savedSinyal = await queryRunner.manager.save(newSinyal);
-
-      // 2. Jika vehicleAssignmentId dikirim berupa array (misal: ["1", "2"])
-      if (vehicleAssignmentId && vehicleAssignmentId.length > 0) {
-        // Buat multiple instance SinyalDetailEntity
-        const detailRecords = vehicleAssignmentId.map((vId) => {
-          return this.sinyalDetailRepository.create({
-            idSinyal: savedSinyal.id,
-            vehicleAssignmentId: vId,
-          });
+          geom: {
+            type: 'Point',
+            coordinates: [
+              longitude,
+              latitude,
+            ],
+          },
         });
 
-        // Bulk save semua detail baris sekaligus
-        await queryRunner.manager.save(detailRecords);
+      const savedSinyal =
+        await queryRunner.manager.save(
+          newSinyal,
+        );
+
+      // 2. Buat detail untuk setiap assignment
+      if (
+        vehicleAssignmentId &&
+        vehicleAssignmentId.length > 0
+      ) {
+        const detailRecords =
+          vehicleAssignmentId.map(
+            (assignmentId) =>
+              this.sinyalDetailRepository.create({
+                idSinyal: savedSinyal.id,
+                vehicleAssignmentId:
+                  assignmentId,
+              }),
+          );
+
+        await queryRunner.manager.save(
+          detailRecords,
+        );
       }
 
       await queryRunner.commitTransaction();
 
-      // Return sinyal beserta array detail-nya
+      await Promise.all(
+        (vehicleAssignmentId ?? []).map((assignmentId) =>
+          this.sinyalGateway.broadcastSinyal({
+            sinyalId: savedSinyal.id,
+            vehicleAssignmentId: String(assignmentId),
+            latitude: savedSinyal.latitude,
+            longitude: savedSinyal.longitude,
+            status: savedSinyal.status,
+          }),
+        ),
+      );
+
       return {
         statusCode: 201,
-        message: 'Sinyal penumpang berhasil dibuat',
+        message:
+          'Sinyal penumpang berhasil dibuat.',
         data: {
           id: savedSinyal.id,
-          totalTargetAngkot: vehicleAssignmentId
-            ? vehicleAssignmentId.length
-            : 0,
+          totalTargetAngkot:
+            vehicleAssignmentId?.length ?? 0,
         },
       };
-    } catch (err) {
+    } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw err;
+      throw error;
     } finally {
       await queryRunner.release();
     }
   }
 
-  // Filter sinyal berdasarkan vehicleAssignmentId di tabel detail
+  /**
+   * Driver mendapatkan sinyal aktif
+   * berdasarkan vehicleAssignmentId
+   */
   async findActiveSinyalByVehicle(
     vehicleAssignmentId: string,
   ): Promise<SinyalEntity[]> {
     return await this.sinyalRepository
       .createQueryBuilder('sinyal')
-      .innerJoinAndSelect('sinyal.details', 'detail')
-      .where('sinyal.status = :status', { status: SinyalStatus.ACTIVE })
-      .andWhere('detail.vehicleAssignmentId = :vehicleAssignmentId', {
-        vehicleAssignmentId,
-      })
-      .orderBy('sinyal.createdAt', 'DESC')
+      .innerJoinAndSelect(
+        'sinyal.details',
+        'detail',
+      )
+      .where(
+        'sinyal.status = :status',
+        {
+          status: SinyalStatus.ACTIVE,
+        },
+      )
+      .andWhere(
+        'detail.vehicleAssignmentId = :vehicleAssignmentId',
+        {
+          vehicleAssignmentId,
+        },
+      )
+      .orderBy(
+        'sinyal.createdAt',
+        'DESC',
+      )
       .getMany();
   }
 
-  // PATCH: Driver menerima/mengunci sinyal penumpang
+  /**
+   * Driver menyelesaikan sinyal
+   */
   async updateSinyal(
     id: string,
     updateSinyalDto: UpdateSinyalDto,
   ): Promise<SinyalEntity> {
-    const sinyal = await this.sinyalRepository.findOne({ where: { id } });
+    const sinyal =
+      await this.sinyalRepository.findOne({
+        where: { id },
+        relations: {
+          details: true,
+        },
+      });
 
     if (!sinyal) {
-      throw new NotFoundException(`Sinyal dengan ID ${id} tidak ditemukan`);
+      throw new NotFoundException(
+        `Sinyal dengan ID ${id} tidak ditemukan.`,
+      );
     }
 
-    sinyal.status = updateSinyalDto.status;
+    sinyal.status =
+      updateSinyalDto.status;
 
-    return await this.sinyalRepository.save(sinyal);
+    const updatedSinyal = await this.sinyalRepository.save(
+      sinyal,
+    );
+
+    await Promise.all(
+      (updatedSinyal.details ?? []).map((detail) =>
+        this.sinyalGateway.broadcastSinyal({
+          sinyalId: updatedSinyal.id,
+          vehicleAssignmentId: String(detail.vehicleAssignmentId),
+          latitude: updatedSinyal.latitude,
+          longitude: updatedSinyal.longitude,
+          status: updatedSinyal.status,
+        }),
+      ),
+    );
+
+    return updatedSinyal;
   }
 }

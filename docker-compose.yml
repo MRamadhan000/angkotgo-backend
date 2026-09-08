@@ -1,19 +1,12 @@
 version: '3.8'
 
 services:
-  # Service untuk Database PostgreSQL
-  postgres_db:
-    image: postgres:15-alpine
-    container_name: nest_postgres_container
+  redis:
+    image: redis:7-alpine
+    container_name: nest_redis_container
     restart: always
-    environment:
-      POSTGRES_USER: nest_user
-      POSTGRES_PASSWORD: nest_password
-      POSTGRES_DB: nest_db
     ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "6379:6379"
     networks:
       - nest_network
 

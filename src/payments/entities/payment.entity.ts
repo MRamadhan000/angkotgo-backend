@@ -31,7 +31,8 @@ export class Payment {
 
   /**
    * Kode pembayaran internal
-   * Contoh: PAY-20260825-X92PL
+   * Contoh:
+   * PAY-20260907-X92PL
    */
   @Column({
     name: 'payment_code',
@@ -104,7 +105,7 @@ export class Payment {
   amount!: number;
 
   /**
-   * Status pembayaran
+   * Status pembayaran internal
    */
   @Column({
     type: 'enum',
@@ -114,60 +115,132 @@ export class Payment {
   status!: PaymentStatus;
 
   // ==========================================
-  // MIDTRANS
+  // XENDIT
   // ==========================================
 
+  /**
+   * Xendit Payment Request ID
+   *
+   * Contoh:
+   * pr-11dc8c00-xxxx-xxxx
+   */
   @Column({
-    name: 'midtrans_order_id',
+    name: 'xendit_payment_request_id',
     type: 'varchar',
     length: 100,
     nullable: true,
     unique: true,
   })
-  midtransOrderId!: string | null;
+  xenditPaymentRequestId!: string | null;
 
+  /**
+   * Reference ID yang dikirim ke Xendit
+   *
+   * Biasanya menggunakan paymentCode internal.
+   */
   @Column({
-    name: 'midtrans_transaction_id',
+    name: 'xendit_reference_id',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    unique: true,
+  })
+  xenditReferenceId!: string | null;
+
+  /**
+   * Status payment dari Xendit
+   *
+   * Contoh:
+   * PENDING
+   * SUCCEEDED
+   * FAILED
+   */
+  @Column({
+    name: 'xendit_payment_status',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  xenditPaymentStatus!: string | null;
+
+  /**
+   * Channel pembayaran
+   *
+   * Contoh:
+   * QRIS
+   */
+  @Column({
+    name: 'xendit_channel_code',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  xenditChannelCode!: string | null;
+
+  /**
+   * Xendit payment method ID
+   */
+  @Column({
+    name: 'xendit_payment_method_id',
     type: 'varchar',
     length: 100,
     nullable: true,
   })
-  midtransTransactionId!: string | null;
+  xenditPaymentMethodId!: string | null;
 
+  /**
+   * URL / data QRIS dari Xendit
+   *
+   * Bisa digunakan FE untuk menampilkan QR.
+   */
   @Column({
-    name: 'midtrans_payment_type',
-    type: 'varchar',
-    length: 50,
+    name: 'xendit_qr_string',
+    type: 'text',
     nullable: true,
   })
-  midtransPaymentType!: string | null;
+  xenditQrString!: string | null;
 
+  /**
+   * Waktu pembayaran dari Xendit
+   */
   @Column({
-    name: 'midtrans_transaction_status',
-    type: 'varchar',
-    length: 50,
-    nullable: true,
-  })
-  midtransTransactionStatus!: string | null;
-
-  @Column({
-    name: 'midtrans_transaction_time',
+    name: 'xendit_paid_at',
     type: 'timestamp',
     nullable: true,
   })
-  midtransTransactionTime!: Date | null;
+  xenditPaidAt!: Date | null;
 
+  /**
+   * Response / error code dari Xendit
+   *
+   * Contoh:
+   * API_VALIDATION_ERROR
+   */
   @Column({
-    name: 'midtrans_settlement_time',
-    type: 'timestamp',
+    name: 'xendit_error_code',
+    type: 'varchar',
+    length: 100,
     nullable: true,
   })
-  midtransSettlementTime!: Date | null;
+  xenditErrorCode!: string | null;
+
+  /**
+   * Pesan error dari Xendit
+   */
+  @Column({
+    name: 'xendit_error_message',
+    type: 'text',
+    nullable: true,
+  })
+  xenditErrorMessage!: string | null;
 
   // ==========================================
   // PAYMENT TIME
   // ==========================================
 
+  /**
+   * Waktu pembayaran berhasil
+   */
   @Column({
     name: 'paid_at',
     type: 'timestamp',
@@ -196,5 +269,5 @@ export class Payment {
     type: 'timestamp',
     nullable: true,
   })
-  deletedAt?: Date;
+  deletedAt!: Date | null;
 }

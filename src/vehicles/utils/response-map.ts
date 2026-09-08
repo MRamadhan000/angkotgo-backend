@@ -21,6 +21,7 @@ export function mapAssignmentResponse(
             id: assignment.conductor?.id,
             name: assignment.conductor?.name,
         },
+        routeId: assignment.route?.id,
         routeCode: assignment.route?.routeCode,
         routeName: assignment.route?.routeName,
         vehicle: {

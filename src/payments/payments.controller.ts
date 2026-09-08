@@ -7,19 +7,13 @@ import {
 } from '@nestjs/common';
 
 import { PaymentsService } from './payments.service';
-
 import { CreatePaymentDto } from './dto/create-payment.dto';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
-  ) {}
-
-  // ==========================================
-  // CREATE PAYMENT
-  // POST /payments/:userId
-  // ==========================================
+  ) { }
 
   @Post(':userId')
   create(
@@ -32,14 +26,12 @@ export class PaymentsController {
     );
   }
 
-  // ==========================================
-  // GET FINANCIAL
-  // GET /payments/financial/vehicle-assignment/:vehicleAssignmentId
-  // ==========================================
+  @Post('webhook/xendit')
+  async xenditWebhook(@Body() payload: any) {
+    return this.paymentsService.handleXenditWebhook(payload);
+  }
 
-  @Get(
-    'financial/vehicle-assignment/:vehicleAssignmentId',
-  )
+  @Get('financial/vehicle-assignment/:vehicleAssignmentId')
   getFinancialByVehicleAssignment(
     @Param('vehicleAssignmentId')
     vehicleAssignmentId: string,
@@ -47,5 +39,10 @@ export class PaymentsController {
     return this.paymentsService.getFinancialByVehicleAssignment(
       +vehicleAssignmentId,
     );
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.paymentsService.findOne(+id);
   }
 }

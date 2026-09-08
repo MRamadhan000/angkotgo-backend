@@ -1,35 +1,42 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { Vehicle } from './entities/vehicle.entity';
 import { VehicleAssignment } from './entities/vehicle-assignment.entity';
 import { VehicleService } from './entities/vehicle-service.entity';
+
 import { VehicleServicesController } from './controllers/vehicle-services.controller';
 import { VehiclesController } from './controllers/vehicle.controller';
+import { VehicleAssignmentsController } from './controllers/vehicle-assignments.controller';
+import { VehicleLocationsController } from './controllers/vehicle-locations.controller';
+import { MockLiveLocationController } from './controllers/mock-live-locations.controller';
+import { ScheduleTemplateController } from './controllers/schedule-template.controller';
+
 import { VehicleServicesService } from './services/vehicle-services.service';
 import { VehiclesService } from './services/vehicles.service';
-import { VehicleAssignmentsController } from './controllers/vehicle-assignments.controller';
 import { VehicleAssignmentsService } from './services/vehicle-assignments.service';
+import { VehicleLocationsService } from './services/vehicle-locations.service';
+import { MockLiveLocationService } from './services/mock-live-location.service';
+import { ScheduleTemplateService } from './services/schedule-template.service';
+
 import { Driver } from 'src/drivers/entities/driver.entity';
 import { Conductor } from 'src/conductors/entities/conductor.entity';
 import { Route } from 'src/routes/entities/route.entity';
-import { VehicleLocation } from './entities/vehicle-location.entity';
-import { VehicleLocationsController } from './controllers/vehicle-locations.controller';
-import { VehicleLocationsService } from './services/vehicle-locations.service';
 import { RouteStop } from 'src/routes/entities/route-stop.entity';
 import { StopInterval } from 'src/routes/entities/stop-interval.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
+
 import { ScheduleTemplate } from './entities/schedule-template.entity';
 import { MockLiveLocation } from './entities/mock-live-locations.entity';
-import { MockLiveLocationController } from './controllers/mock-live-locations.controller';
-import { MockLiveLocationService } from './services/mock-live-location.service';
-import { ScheduleTemplateController } from './controllers/schedule-template.controller';
-import { ScheduleTemplateService } from './services/schedule-template.service';
+
+import { VehicleGateway } from './gateways/vehicle.gateway';
+import { VehicleLocation } from './entities/vehicle-location.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Vehicle, 
-      VehicleAssignment, 
+      Vehicle,
+      VehicleAssignment,
       VehicleService,
       VehicleLocation,
       Driver,
@@ -40,8 +47,9 @@ import { ScheduleTemplateService } from './services/schedule-template.service';
       Payment,
       ScheduleTemplate,
       MockLiveLocation,
-    ])
+    ]),
   ],
+
   controllers: [
     VehiclesController,
     VehicleAssignmentsController,
@@ -50,6 +58,7 @@ import { ScheduleTemplateService } from './services/schedule-template.service';
     MockLiveLocationController,
     ScheduleTemplateController,
   ],
+
   providers: [
     VehiclesService,
     VehicleAssignmentsService,
@@ -57,12 +66,19 @@ import { ScheduleTemplateService } from './services/schedule-template.service';
     VehicleServicesService,
     MockLiveLocationService,
     ScheduleTemplateService,
+
+    // WebSocket Gateway
+    VehicleGateway,
   ],
+
   exports: [
     VehiclesService,
     VehicleAssignmentsService,
     VehicleLocationsService,
     VehicleServicesService,
+
+    // Jika gateway ingin digunakan oleh module lain
+    VehicleGateway,
   ],
 })
 export class VehiclesModule {}

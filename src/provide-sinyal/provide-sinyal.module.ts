@@ -4,11 +4,12 @@ import { SinyalDetailEntity } from './entities/provide-sinyal-detail.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SinyalController } from './sinyal.controller';
 import { SinyalService } from './sinyal.service';
+import { SinyalGateway } from './gateway/sinyal.gateway';
 
 @Module({
   imports: [TypeOrmModule.forFeature([SinyalEntity, SinyalDetailEntity])],
   controllers: [SinyalController],
-  providers: [SinyalService],
+  providers: [SinyalService, SinyalGateway],
   exports: [SinyalService],
 })
 export class ProvideSinyalModule {}
