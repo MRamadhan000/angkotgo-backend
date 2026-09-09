@@ -1,6 +1,8 @@
 import {
     Logger,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 import {
     ConnectedSocket,
@@ -20,6 +22,7 @@ import {
 import {
     RedisPubSubService,
 } from '../../realtime/redis-pubsub.service';
+import { VehicleLocation } from '../entities/vehicle-location.entity';
 
 const VEHICLE_LOCATION_CHANNEL =
     'vehicle:location';
@@ -48,6 +51,8 @@ export class VehicleGateway
 
     constructor(
         private readonly redisPubSub: RedisPubSubService,
+        @InjectRepository(VehicleLocation)
+        private readonly locationRepository: Repository<VehicleLocation>,
     ) { }
 
     @WebSocketServer()
@@ -220,14 +225,33 @@ export class VehicleGateway
         vehicleAssignmentId: number,
         currentPassengers: number,
     ): Promise<void> {
-        const latestLocation =
+        let latestLocation =
             await this.redisPubSub.get<VehicleLocationPayload>(
                 this.getLatestKey(vehicleAssignmentId),
             );
 
         if (!latestLocation) {
+            const persistedLocation = await this.locationRepository.findOne({
+                where: { vehicleAssignmentId },
+                order: { createdAt: 'DESC' },
+            });
+
+            if (persistedLocation) {
+                latestLocation = {
+                    vehicleAssignmentId,
+                    currentPassengers,
+                    latitude: persistedLocation.latitude,
+                    longitude: persistedLocation.longitude,
+                    currentStopId: persistedLocation.currentStopId,
+                    stopStatus: persistedLocation.stopStatus,
+                    createdAt: persistedLocation.createdAt,
+                };
+            }
+        }
+
+        if (!latestLocation) {
             this.logger.warn(
-                `[Redis] Latest location tidak ditemukan untuk assignment=${vehicleAssignmentId}; currentPassengers belum dipublish`,
+                `[Location] Lokasi terbaru tidak ditemukan untuk assignment=${vehicleAssignmentId}; currentPassengers belum dipublish`,
             );
             return;
         }
