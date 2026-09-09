@@ -91,7 +91,7 @@ export class PaymentsService {
           userId: savedPayment.userId,
           paymentType: savedPayment.paymentType,
           amount: Number(savedPayment.amount),
-          status: savedPayment.status,
+          status: PaymentStatus.PAID,
         },
       };
     }
