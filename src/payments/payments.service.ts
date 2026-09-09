@@ -115,6 +115,7 @@ export class PaymentsService {
         amount: true,
         status: true,
         createdAt: true,
+        xenditPaymentRequestId:true
       },
       order: {
         createdAt: 'DESC', // Urutkan transaksi terbaru di atas
