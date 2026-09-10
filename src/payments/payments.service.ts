@@ -115,6 +115,9 @@ export class PaymentsService {
         amount: true,
         status: true,
         createdAt: true,
+        xenditPaymentRequestId: true,
+        paymentType : true,
+        paidAt: true,
       },
       order: {
         createdAt: 'DESC', // Urutkan transaksi terbaru di atas
@@ -422,6 +425,9 @@ export class PaymentsService {
 
     return {
       message: 'Webhook berhasil diproses',
+      data: {
+        "id": payment.id,
+      }
     };
   }
 
