@@ -12,6 +12,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { ProvideSinyalModule } from './provide-sinyal/provide-sinyal.module';
 import { CostsModule } from './tarif/costs.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { StatisticsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     ProvideSinyalModule,
     CostsModule,
     RealtimeModule,
+    StatisticsModule,
   ],
 })
 export class AppModule implements OnModuleInit {
