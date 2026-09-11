@@ -32,7 +32,7 @@ import { RealtimeModule } from './realtime/realtime.module';
           type: 'postgres',
           url: databaseUrl,
           autoLoadEntities: true,
-          synchronize: isDev,
+          synchronize: false,
           ssl: isLocalDatabase
             ? false
             : {
