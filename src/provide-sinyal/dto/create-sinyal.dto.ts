@@ -5,9 +5,14 @@ import {
   IsLatitude,
   IsLongitude,
   IsArray,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class CreateSinyalDto {
+  @IsNumber()
+  @IsNotEmpty()
+  userId!: number;
+  
   @IsNumber()
   @IsLatitude()
   latitude!: number;

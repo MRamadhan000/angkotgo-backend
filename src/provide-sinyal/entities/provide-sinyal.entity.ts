@@ -9,6 +9,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ManyToOne } from 'typeorm/browser';
+import { JoinColumn } from 'typeorm/browser';
+import { User } from 'src/user/entities/user.entitiy';
 
 interface GeoJSONPoint {
   type: 'Point';
@@ -24,6 +27,9 @@ export enum SinyalStatus {
 export class SinyalEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column({ type: 'int' })
+  userId!: number;
 
   @Column({
     type: 'decimal',
@@ -70,6 +76,11 @@ export class SinyalEntity {
   @OneToMany(() => SinyalDetailEntity, (detail) => detail.sinyal, {
     cascade: true,
   })
+
+  @ManyToOne(() => User, (user) => user.sinyal, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user!: User;
+
   details!: SinyalDetailEntity[];
 
   @CreateDateColumn()

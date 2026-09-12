@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Payment } from 'src/payments/entities/payment.entity';
+import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity';
 
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
@@ -60,6 +61,9 @@ export class User {
     (payment) => payment.user,
   )
   payments!: Payment[];
+
+  @OneToMany(() => SinyalEntity, (sinyal) => sinyal.user)
+  sinyal!: SinyalEntity[];
 
   @BeforeInsert()
   @BeforeUpdate()

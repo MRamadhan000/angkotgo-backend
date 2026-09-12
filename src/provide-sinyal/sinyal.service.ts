@@ -16,6 +16,7 @@ import { SinyalDetailEntity } from './entities/provide-sinyal-detail.entity';
 import { CreateSinyalDto } from './dto/create-sinyal.dto';
 import { UpdateSinyalDto } from './dto/update-sinyal.dto';
 import { SinyalGateway } from './gateway/sinyal.gateway';
+import { User } from 'src/user/entities/user.entitiy';
 
 export interface CreateSinyalResponse {
   statusCode: number;
@@ -49,6 +50,7 @@ export class SinyalService {
       latitude,
       longitude,
       vehicleAssignmentId,
+      userId,
     } = createSinyalDto;
 
     const queryRunner =
@@ -58,9 +60,19 @@ export class SinyalService {
     await queryRunner.startTransaction();
 
     try {
+      // 1. Validasi keberadaan User
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User dengan ID ${userId} tidak ditemukan.`);
+      }
+
       // 1. Buat sinyal utama
       const newSinyal =
         this.sinyalRepository.create({
+          userId,
           latitude,
           longitude,
           status: SinyalStatus.ACTIVE,
