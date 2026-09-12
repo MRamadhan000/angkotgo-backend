@@ -24,7 +24,7 @@ export class PaymentsService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly paymentGateway: PaymentGateway,
-  ) { }
+  ) {}
 
   async create(createPaymentDto: CreatePaymentDto, userId: number) {
     const { vehicleAssignmentId, paymentType, amount } = createPaymentDto;
@@ -77,10 +77,7 @@ export class PaymentsService {
       xenditPaidAt: null,
       xenditErrorCode: null,
       xenditErrorMessage: null,
-      paidAt:
-        paymentType === PaymentType.CASH
-          ? new Date()
-          : null,
+      paidAt: paymentType === PaymentType.CASH ? new Date() : null,
     });
 
     const savedPayment = await this.paymentRepository.save(payment);
@@ -149,10 +146,10 @@ export class PaymentsService {
         userId: payment.userId,
         user: payment.user
           ? {
-            id: payment.user.id,
-            name: payment.user.name,
-            email: payment.user.email,
-          }
+              id: payment.user.id,
+              name: payment.user.name,
+              email: payment.user.email,
+            }
           : null,
         paymentType: payment.paymentType,
         amount: Number(payment.amount),
@@ -347,10 +344,10 @@ export class PaymentsService {
           userId: payment.userId,
           user: payment.user
             ? {
-              id: payment.user.id,
-              name: payment.user.name,
-              email: payment.user.email,
-            }
+                id: payment.user.id,
+                name: payment.user.name,
+                email: payment.user.email,
+              }
             : null,
           paymentType: payment.paymentType,
           amount: Number(payment.amount),
