@@ -34,6 +34,19 @@ export class SinyalController {
     );
   }
 
+  @Get('user/:userId')
+  async getSinyalByUserId(@Param('userId') userId: string) {
+    return await this.sinyalService.findAllByUserId(userId);
+  }
+
+  @Get(':id/user/:userId')
+  async getSinyalByIdAndUserId(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return await this.sinyalService.findOneByIdAndUserId(id, userId);
+  }
+
   // Endpoint 3: Driver menerima/klaim sinyal tertentu
   @Put(':id/completed')
   async acceptSinyal(

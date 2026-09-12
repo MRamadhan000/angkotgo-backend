@@ -144,6 +144,66 @@ export class SinyalService {
   }
 
   /**
+ * Mendapatkan Sinyal berdasarkan ID Sinyal dan User ID (Populate details & user)
+ */
+  async findOneByIdAndUserId(id: string, userId: string): Promise<SinyalEntity> {
+    const sinyal = await this.sinyalRepository.findOne({
+      where: {
+        id,
+        userId: Number(userId),
+      },
+      relations: {
+        details: {
+          vehicleAssignment : {
+            conductor : true,
+            driver : true,
+            route : true,
+          }
+        },
+        user: true,
+      },
+    });
+
+    if (!sinyal) {
+      throw new NotFoundException(
+        `Sinyal dengan ID ${id} untuk User ID ${userId} tidak ditemukan.`,
+      );
+    }
+
+    return sinyal;
+  }
+
+ /**
+ * Mendapatkan semua daftar sinyal milik User tertentu (Populate details & vehicleAssignment)
+ */
+async findAllByUserId(userId: string): Promise<SinyalEntity[]> {
+  const parsedUserId = Number(userId);
+
+  if (isNaN(parsedUserId)) {
+    throw new NotFoundException(`ID User '${userId}' tidak valid.`);
+  }
+
+  return await this.sinyalRepository.find({
+    where: { 
+      userId: parsedUserId,
+    },
+    relations: {
+      details: {
+        vehicleAssignment: {
+          conductor : true,
+          driver : true,
+          route : true,
+        }, // Auto-populate data assignment angkot
+      },
+      user: true,
+    },
+    order: {
+      createdAt: 'DESC',
+    },
+  });
+}
+
+  /**
    * Driver mendapatkan sinyal aktif
    * berdasarkan vehicleAssignmentId
    */
