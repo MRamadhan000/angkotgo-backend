@@ -1,16 +1,15 @@
-import * as typeorm from 'typeorm';
-import { SinyalDetailEntity } from './provide-sinyal-detail.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ManyToOne } from 'typeorm/browser';
-import { JoinColumn } from 'typeorm/browser';
+import { SinyalDetailEntity } from './provide-sinyal-detail.entity';
 import { User } from 'src/user/entities/user.entitiy';
 
 interface GeoJSONPoint {
@@ -73,14 +72,15 @@ export class SinyalEntity {
   @Column({ type: 'varchar', nullable: true })
   vehicleAssignmentId!: string | null;
 
-  @OneToMany(() => SinyalDetailEntity, (detail) => detail.sinyal, {
-    cascade: true,
-  })
-
+  // ─── Relasi User ───
   @ManyToOne(() => User, (user) => user.sinyal, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user!: User;
 
+  // ─── Relasi Sinyal Details ───
+  @OneToMany(() => SinyalDetailEntity, (detail) => detail.sinyal, {
+    cascade: true,
+  })
   details!: SinyalDetailEntity[];
 
   @CreateDateColumn()
