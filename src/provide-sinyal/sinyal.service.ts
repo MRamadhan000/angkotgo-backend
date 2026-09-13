@@ -49,8 +49,14 @@ export class SinyalService {
     const {
       latitude,
       longitude,
+      targetLat,
+      targetLng,
+      sourceName,
+      destName,
       vehicleAssignmentId,
       userId,
+      routeId,
+      direction,
     } = createSinyalDto;
 
     const queryRunner =
@@ -76,7 +82,12 @@ export class SinyalService {
           latitude,
           longitude,
           status: SinyalStatus.ACTIVE,
-
+          targetLat: targetLat ?? null,
+          targetLng: targetLng ?? null,
+          sourceName: sourceName ?? null,
+          destName: destName ?? null,
+          routeId: routeId ?? null,
+          direction: direction ?? null,
           geom: {
             type: 'Point',
             coordinates: [
@@ -146,61 +157,84 @@ export class SinyalService {
   /**
  * Mendapatkan Sinyal berdasarkan ID Sinyal dan User ID (Populate details & user)
  */
-  async findOneByIdAndUserId(id: string, userId: string): Promise<SinyalEntity> {
-    const sinyal = await this.sinyalRepository.findOne({
-      where: {
-        id,
-        userId: Number(userId),
-      },
-      relations: {
-        details: {
-          vehicleAssignment : {
-            conductor : true,
-            driver : true,
-            route : true,
-          }
-        },
-        user: true,
-      },
-    });
-
-    if (!sinyal) {
-      throw new NotFoundException(
-        `Sinyal dengan ID ${id} untuk User ID ${userId} tidak ditemukan.`,
-      );
-    }
-
-    return sinyal;
-  }
-
- /**
- * Mendapatkan semua daftar sinyal milik User tertentu (Populate details & vehicleAssignment)
- */
-async findAllByUserId(userId: string): Promise<SinyalEntity[]> {
+ async findOneByIdAndUserId(
+  id: string,
+  userId: string,
+): Promise<{ statusCode: number; message: string; data: SinyalEntity }> {
   const parsedUserId = Number(userId);
 
   if (isNaN(parsedUserId)) {
     throw new NotFoundException(`ID User '${userId}' tidak valid.`);
   }
 
-  return await this.sinyalRepository.find({
-    where: { 
+  const sinyal = await this.sinyalRepository.findOne({
+    where: {
+      id,
       userId: parsedUserId,
     },
     relations: {
       details: {
         vehicleAssignment: {
-          conductor : true,
-          driver : true,
-          route : true,
-        }, // Auto-populate data assignment angkot
+          conductor: true,
+          driver: true,
+          route: true,
+        },
       },
       user: true,
+      route: true, // Auto-populate relasi route utama pada sinyal
+    },
+  });
+
+  if (!sinyal) {
+    throw new NotFoundException(
+      `Sinyal dengan ID ${id} untuk User ID ${userId} tidak ditemukan.`,
+    );
+  }
+
+  return {
+    statusCode: 200,
+    message: 'Detail sinyal penumpang berhasil ditemukan.',
+    data: sinyal,
+  };
+}
+
+/**
+ * Mendapatkan semua daftar sinyal milik User tertentu (Populate details & vehicleAssignment)
+ */
+async findAllByUserId(
+  userId: string,
+): Promise<{ statusCode: number; message: string; data: SinyalEntity[] }> {
+  const parsedUserId = Number(userId);
+
+  if (isNaN(parsedUserId)) {
+    throw new NotFoundException(`ID User '${userId}' tidak valid.`);
+  }
+
+  const sinyalList = await this.sinyalRepository.find({
+    where: {
+      userId: parsedUserId,
+    },
+    relations: {
+      details: {
+        vehicleAssignment: {
+          conductor: true,
+          driver: true,
+          route: true,
+        },
+      },
+      user: true,
+      route: true, // Auto-populate relasi route utama pada sinyal
     },
     order: {
       createdAt: 'DESC',
     },
   });
+
+  return {
+    statusCode: 200,
+    message: 'Daftar sinyal penumpang berhasil didapatkan.',
+    data: sinyalList,
+  };
 }
 
   /**
