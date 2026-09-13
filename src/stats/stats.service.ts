@@ -12,6 +12,7 @@ import {
 } from 'src/vehicles/enum/vehicle.enum';
 import { Cost } from 'src/tarif/entities/cost.entity';
 import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity';
+import { Payment, PaymentStatus } from 'src/payments/entities/payment.entity';
 
 @Injectable()
 export class StatisticsService {
@@ -30,6 +31,8 @@ export class StatisticsService {
     private readonly costRepository: Repository<Cost>,
     @InjectRepository(SinyalEntity)
     private readonly sinyalRepository: Repository<SinyalEntity>,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
   ) {}
 
   async getDashboardStatistics() {
@@ -113,17 +116,18 @@ export class StatisticsService {
       }
     });
 
-    const topPassengersByAssignmentRaw = await this.sinyalRepository
-      .createQueryBuilder('sinyal')
-      .innerJoin('sinyal.details', 'detail')
-      .innerJoin('detail.vehicleAssignment', 'assignment')
+    // ambil jumlah penumpang dari tabel payments bukan tabel sinyal
+    const topPassengersByAssignmentRaw = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .innerJoin('payment.vehicleAssignment', 'assignment')
       .innerJoin('assignment.route', 'route')
-      .select('detail.vehicleAssignmentId', 'vehicleAssignmentId')
+      .select('payment.vehicleAssignmentId', 'vehicleAssignmentId')
       .addSelect('route.routeName', 'routeName')
       .addSelect('route.routeCode', 'routeCode')
-      .addSelect('COUNT(sinyal.id)', 'totalPassengers')
+      .addSelect('COUNT(payment.id)', 'totalPassengers')
       .where('assignment.assignmentDate = :today', { today })
-      .groupBy('detail.vehicleAssignmentId')
+      .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
+      .groupBy('payment.vehicleAssignmentId')
       .addGroupBy('route.routeName')
       .addGroupBy('route.routeCode')
       .orderBy('totalPassengers', 'DESC')

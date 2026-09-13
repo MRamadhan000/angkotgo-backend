@@ -11,6 +11,7 @@ import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.enti
 import { Cost } from 'src/tarif/entities/cost.entity';
 import { SinyalDetailEntity } from 'src/provide-sinyal/entities/provide-sinyal-detail.entity';
 import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity'
       Cost,
       SinyalEntity,
       SinyalDetailEntity,
+      Payment,
     ]),
   ],
   controllers: [StatisticsController],
