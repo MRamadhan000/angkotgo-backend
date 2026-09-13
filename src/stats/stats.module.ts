@@ -9,6 +9,8 @@ import { RouteStop } from '../routes/entities/route-stop.entity';
 import { ScheduleTemplate } from '../vehicles/entities/schedule-template.entity';
 import { VehicleAssignment } from 'src/vehicles/entities/vehicle-assignment.entity';
 import { Cost } from 'src/tarif/entities/cost.entity';
+import { SinyalDetailEntity } from 'src/provide-sinyal/entities/provide-sinyal-detail.entity';
+import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { Cost } from 'src/tarif/entities/cost.entity';
       ScheduleTemplate,
       VehicleAssignment,
       Cost,
+      SinyalEntity,
+      SinyalDetailEntity,
     ]),
   ],
   controllers: [StatisticsController],
