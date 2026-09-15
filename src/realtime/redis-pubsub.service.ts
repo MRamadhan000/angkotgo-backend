@@ -26,9 +26,9 @@ export class RedisPubSubService implements OnModuleDestroy {
 
     constructor(configService: ConfigService) {
         const redisUrl =
-            configService.get<string>('REDIS_URL') ??
-            'redis://localhost:6379';
-
+            configService.getOrThrow<string>(
+            'REDIS_URL',
+        );
         /**
          * Redis Publisher
          *
