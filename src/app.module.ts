@@ -33,7 +33,7 @@ import { StatisticsModule } from './stats/stats.module';
           type: 'postgres',
           url: databaseUrl,
           autoLoadEntities: true,
-          synchronize: false,
+          synchronize: true,
           ssl: isLocalDatabase
             ? false
             : {

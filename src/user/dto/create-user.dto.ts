@@ -4,7 +4,9 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  IsEnum,
 } from 'class-validator';
+import { UserRole } from '../entities/user.entitiy';
 
 export class CreateUserDto {
   @IsEmail()
@@ -23,4 +25,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsEnum(UserRole)
+  @IsNotEmpty()
+  role!: UserRole;
 }

@@ -13,6 +13,11 @@ import * as bcrypt from 'bcrypt';
 import { Payment } from 'src/payments/entities/payment.entity';
 import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity';
 
+export enum UserRole {
+  PELAJAR = 'PELAJAR',
+  UMUM = 'UMUM',
+}
+
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   PENDING = 'PENDING',
@@ -43,6 +48,13 @@ export class User {
   })
   status!: UserStatus;
 
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.UMUM,
+  })
+  role!: UserRole;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
 
@@ -56,10 +68,7 @@ export class User {
   })
   deletedAt?: Date;
 
-  @OneToMany(
-    () => Payment,
-    (payment) => payment.user,
-  )
+  @OneToMany(() => Payment, (payment) => payment.user)
   payments!: Payment[];
 
   @OneToMany(() => SinyalEntity, (sinyal) => sinyal.user)
