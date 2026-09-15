@@ -1,18 +1,80 @@
 version: '3.8'
 
 services:
+
+  # =====================================================
+  # REDIS SERVICE
+  # =====================================================
   redis:
     image: redis:7-alpine
-    container_name: nest_redis_container
+
+    container_name: angkot-go-prod-redis
+
     restart: always
-    ports:
-      - "6379:6379"
+
+    command: redis-server --appendonly yes
+
+    volumes:
+      - angkot_go_prod_redis_data:/data
+
     networks:
-      - nest_network
+      - angkot_go_prod_network
 
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+
+  # =====================================================
+  # NESTJS BACKEND SERVICE
+  # =====================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: angkot-go-prod-backend
+
+    restart: always
+
+    ports:
+      - "3001:3001"
+
+    # Ambil environment variable dari .env
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+
+      # Redis menggunakan nama service Docker
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    networks:
+      - angkot_go_prod_network
+
+
+# =====================================================
+# VOLUMES
+# =====================================================
 volumes:
-  postgres_data:
+  angkot_go_prod_redis_data:
+    name: angkot-go-prod-redis-data
 
+
+# =====================================================
+# NETWORK
+# =====================================================
 networks:
-  nest_network:
+  angkot_go_prod_network:
+    name: angkot-go-prod-network
     driver: bridge
