@@ -12,6 +12,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { Payment } from 'src/payments/entities/payment.entity';
 import { SinyalEntity } from 'src/provide-sinyal/entities/provide-sinyal.entity';
+import { Review } from 'src/reviews/entities/review.entity';
 
 export enum UserRole {
   PELAJAR = 'PELAJAR',
@@ -73,6 +74,9 @@ export class User {
 
   @OneToMany(() => SinyalEntity, (sinyal) => sinyal.user)
   sinyal!: SinyalEntity[];
+
+  @OneToMany(() => Review, (review) => review.user)
+reviews!: Review[];
 
   @BeforeInsert()
   @BeforeUpdate()

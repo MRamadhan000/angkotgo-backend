@@ -15,6 +15,7 @@ import { Driver } from 'src/drivers/entities/driver.entity';
 import { Conductor } from 'src/conductors/entities/conductor.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
 import { VehicleLocation } from './vehicle-location.entity';
+import { Review } from 'src/reviews/entities/review.entity';
 
 @Entity('vehicle_assignments')
 export class VehicleAssignment {
@@ -75,6 +76,12 @@ export class VehicleAssignment {
     @ManyToOne(() => Conductor, (conductor) => conductor.assignments, { onDelete: 'RESTRICT', nullable: true })
     @JoinColumn({ name: 'conductor_id' })
     conductor?: Conductor;
+
+    @OneToMany(
+    () => Review,
+    (review) => review.vehicleAssignment,
+)
+reviews!: Review[];
 
     @OneToMany(
         () => Payment,

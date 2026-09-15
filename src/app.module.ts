@@ -34,7 +34,7 @@ import { ReviewsModule } from './reviews/reviews.module';
           type: 'postgres',
           url: databaseUrl,
           autoLoadEntities: true,
-          synchronize: true,
+          synchronize: false,
           ssl: isLocalDatabase
             ? false
             : {
