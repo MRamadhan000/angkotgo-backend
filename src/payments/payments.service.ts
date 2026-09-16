@@ -107,23 +107,70 @@ export class PaymentsService {
   async getHistoryByUserId(userId: number) {
     const payments = await this.paymentRepository.find({
       where: { userId },
-      select: {
-        paymentCode: true,
-        amount: true,
-        status: true,
-        createdAt: true,
-        xenditPaymentRequestId: true,
-        paymentType : true,
-        paidAt: true,
+      relations: {
+        vehicleAssignment: {
+          vehicle: true,
+          route: true,
+          driver: true,
+          conductor: true,
+          reviews: true,
+          payments: true,
+        },
       },
       order: {
-        createdAt: 'DESC', // Urutkan transaksi terbaru di atas
+        createdAt: 'DESC',
       },
     });
 
     return {
       message: 'Berhasil mengambil riwayat pembayaran',
-      data: payments,
+      data: payments.map((payment) => ({
+        id: payment.id,
+        paymentCode: payment.paymentCode,
+        paymentType: payment.paymentType,
+        amount: Number(payment.amount),
+        status: payment.status,
+        xenditPaymentRequestId: payment.xenditPaymentRequestId,
+        paidAt: payment.paidAt,
+        createdAt: payment.createdAt,
+        vehicleAssignment: payment.vehicleAssignment
+          ? {
+              id: payment.vehicleAssignment.id,
+              vehicleId: payment.vehicleAssignment.vehicleId,
+              routeId: payment.vehicleAssignment.routeId,
+              driverId: payment.vehicleAssignment.driverId,
+              conductorId: payment.vehicleAssignment.conductorId,
+              direction: payment.vehicleAssignment.direction,
+              currentPassengers: payment.vehicleAssignment.currentPassengers,
+              assignmentDate: payment.vehicleAssignment.assignmentDate,
+              startTime: payment.vehicleAssignment.startTime,
+              endTime: payment.vehicleAssignment.endTime,
+              status: payment.vehicleAssignment.status,
+              vehicle: payment.vehicleAssignment.vehicle,
+              route: payment.vehicleAssignment.route,
+              driver: payment.vehicleAssignment.driver,
+              conductor: payment.vehicleAssignment.conductor,
+              payments: payment.vehicleAssignment.payments.map(
+                (assignmentPayment) => ({
+                  id: assignmentPayment.id,
+                  paymentCode: assignmentPayment.paymentCode,
+                  paymentType: assignmentPayment.paymentType,
+                  amount: Number(assignmentPayment.amount),
+                  status: assignmentPayment.status,
+                  paidAt: assignmentPayment.paidAt,
+                  createdAt: assignmentPayment.createdAt,
+                }),
+              ),
+              feedback:
+                payment.vehicleAssignment.reviews
+                  .filter((review) => review.userId === userId)
+                  .map((review) => ({
+                    rating: review.rating,
+                    description: review.description,
+                  }))[0] ?? null,
+            }
+          : null,
+      })),
     };
   }
 

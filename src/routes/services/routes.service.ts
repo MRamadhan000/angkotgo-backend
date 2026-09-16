@@ -31,6 +31,8 @@ export interface UpcomingVehicleResult {
   vehicleId: number;
   driverId: number;
   conductorId: number | null;
+  currentPassengers: number;
+  capacity: number;
   status: string;
   hasLocationData: boolean;
   lastLocationAt: Date | null;
@@ -470,12 +472,15 @@ export class RoutesService {
           va.vehicle_id AS "vehicleId",
           va.driver_id AS "driverId",
           va.conductor_id AS "conductorId",
+          va.current_passengers AS "currentPassengers",
+          v.capacity AS "capacity",
           va.status AS "status",
           ll.latitude AS "vehicleLat",
           ll.longitude AS "vehicleLng",
           ll.created_at AS "lastLocationAt",
           ll.geom AS "vehicleGeom"
         FROM vehicle_assignments va
+        JOIN vehicles v ON v.id = va.vehicle_id
         LEFT JOIN latest_locations ll ON ll.vehicle_assignment_id = va.id
         WHERE va.route_id = $1
           AND va.direction::text = $2
@@ -487,6 +492,8 @@ export class RoutesService {
         aa."vehicleId",
         aa."driverId",
         aa."conductorId",
+        aa."currentPassengers",
+        aa."capacity",
         aa."status",
         aa."vehicleLat",
         aa."vehicleLng",
@@ -541,6 +548,8 @@ export class RoutesService {
           vehicleId: r.vehicleId,
           driverId: r.driverId,
           conductorId: r.conductorId ?? null,
+          currentPassengers: Number(r.currentPassengers ?? 0),
+          capacity: Number(r.capacity ?? 0),
           status: r.status,
           hasLocationData,
           lastLocationAt,

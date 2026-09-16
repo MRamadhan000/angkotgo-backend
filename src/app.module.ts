@@ -44,11 +44,17 @@ import { ReviewsModule } from './reviews/reviews.module';
           retryDelay: 3000,
           logging: isDev,
           extra: {
-            max: 10,
+            max: 5, // Diturunkan ke 5 agar tidak cepat melebihi batas pool_size: 15
             min: 0,
-            idleTimeoutMillis: 10000,
-            connectionTimeoutMillis: 10000,
+            idleTimeoutMillis: 5000, // Putus koneksi menganggur lebih cepat (5 detik)
+            connectionTimeoutMillis: 5000,
             keepAlive: true,
+
+            // max: 10,
+            // min: 0,
+            // idleTimeoutMillis: 10000,
+            // connectionTimeoutMillis: 10000,
+            // keepAlive: true,
             keepAliveInitialDelayMillis: 10000,
           },
         };
