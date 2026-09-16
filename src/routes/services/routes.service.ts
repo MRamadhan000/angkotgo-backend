@@ -31,6 +31,9 @@ export interface UpcomingVehicleResult {
   vehicleId: number;
   driverId: number;
   conductorId: number | null;
+  driverName: string;
+  conductorName: string | null;
+  plateNumber: string;
   currentPassengers: number;
   capacity: number;
   status: string;
@@ -472,6 +475,9 @@ export class RoutesService {
           va.vehicle_id AS "vehicleId",
           va.driver_id AS "driverId",
           va.conductor_id AS "conductorId",
+          d.name AS "driverName",
+          c.name AS "conductorName",
+          v.plate_number AS "plateNumber",
           va.current_passengers AS "currentPassengers",
           v.capacity AS "capacity",
           va.status AS "status",
@@ -481,6 +487,8 @@ export class RoutesService {
           ll.geom AS "vehicleGeom"
         FROM vehicle_assignments va
         JOIN vehicles v ON v.id = va.vehicle_id
+        JOIN drivers d ON d.id = va.driver_id
+        LEFT JOIN conductors c ON c.id = va.conductor_id
         LEFT JOIN latest_locations ll ON ll.vehicle_assignment_id = va.id
         WHERE va.route_id = $1
           AND va.direction::text = $2
@@ -492,6 +500,9 @@ export class RoutesService {
         aa."vehicleId",
         aa."driverId",
         aa."conductorId",
+        aa."driverName",
+        aa."conductorName",
+        aa."plateNumber",
         aa."currentPassengers",
         aa."capacity",
         aa."status",
@@ -548,6 +559,9 @@ export class RoutesService {
           vehicleId: r.vehicleId,
           driverId: r.driverId,
           conductorId: r.conductorId ?? null,
+          driverName: r.driverName,
+          conductorName: r.conductorName ?? null,
+          plateNumber: r.plateNumber,
           currentPassengers: Number(r.currentPassengers ?? 0),
           capacity: Number(r.capacity ?? 0),
           status: r.status,
